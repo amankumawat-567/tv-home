@@ -91,6 +91,14 @@ export interface AboutInfo {
   version: string;
 }
 
+export interface UpdateInfo {
+  current: string;
+  latest: string;
+  available: boolean;
+  url: string | null;
+  notes: string;
+}
+
 export interface StatusSnapshot {
   wifi: "off" | "none" | 0 | 1 | 2 | 3 | 4;
   bluetooth: "off" | "on" | "connected";

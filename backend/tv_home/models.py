@@ -56,3 +56,7 @@ class ScreenOffBody(BaseModel):
 
 class PowerBody(BaseModel):
     action: str  # sleep | restart | poweroff | desktop
+
+
+class UpdateApplyBody(BaseModel):
+    url: Optional[str] = None

@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from the tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "$VERSION" > VERSION
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the test suite before packaging a release
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          TV_HOME_MOCK=1 pytest -q
+
+      - name: Package the release
+        id: package
+        run: |
+          set -euo pipefail
+          STAGE="tv-home-${{ steps.version.outputs.version }}"
+          mkdir -p "$STAGE"
+          cp VERSION LICENSE README.md "$STAGE/"
+          cp -r backend/tv_home backend/pyproject.toml "$STAGE/backend/" 2>/dev/null || { mkdir -p "$STAGE/backend"; cp -r backend/tv_home backend/pyproject.toml "$STAGE/backend/"; }
+          mkdir -p "$STAGE/frontend"
+          cp -r frontend/dist "$STAGE/frontend/dist"
+          cp -r session "$STAGE/session"
+          TARBALL="tv-home-${{ steps.version.outputs.version }}.tar.gz"
+          tar czf "$TARBALL" "$STAGE"
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TV Home ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: ${{ steps.package.outputs.tarball }}

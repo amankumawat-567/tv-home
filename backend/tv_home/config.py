@@ -10,7 +10,16 @@ PROFILE = APPDIR / "chrome-profile"
 USER_WALLS = APPDIR / "wallpapers"
 WALL_DIRS = [USER_WALLS, Path("/usr/share/xfce4/backdrops"), Path("/usr/share/backgrounds")]
 
-VERSION = "2.0.0"
+# The GitHub repo releases are published to — used by update.py to check for
+# and fetch new versions (Y6). Change this if you fork/republish elsewhere.
+GITHUB_REPO = "amankumawat-567/tv-home"
+
+# Where this install lives: a release tarball's layout (VERSION at the repo
+# root, backend/ and frontend/dist/ beside it) when installed by
+# session/install.sh, or the source checkout during development.
+INSTALL_ROOT = Path(__file__).resolve().parents[2]
+_VERSION_FILE = INSTALL_ROOT / "VERSION"
+VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0.0-dev"
 
 # Mock mode fakes Wi-Fi/Bluetooth/Sound/Display/Power so the whole UI runs on a
 # laptop with no NetworkManager, BlueZ, PipeWire or X11 in sight (see

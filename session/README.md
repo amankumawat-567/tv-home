@@ -10,12 +10,27 @@ machine, not as tested code.
 
 ## Install
 
+From a source checkout (builds the frontend — needs `node`/`npm`):
+
 ```sh
 ./session/install.sh
 ```
 
-Builds the frontend, sets up a backend virtualenv under
-`~/.local/share/tv-home`, and installs:
+From a downloaded release (ships a prebuilt frontend, so `node`/`npm` aren't
+needed on the target machine at all — see the top-level README's "Install"
+section):
+
+```sh
+./session/install.sh --from-release /path/to/extracted/tv-home-X.Y.Z
+```
+
+This is also how Settings → About's "Update" button re-installs: it
+downloads the latest release tarball and runs this same installer against it
+(`backend/tv_home/system/update.py`), so there's only one install code path
+to verify.
+
+Either way, it sets up a backend virtualenv under `~/.local/share/tv-home`,
+and installs:
 
 - `/usr/local/bin/tv-home-session` — the session script
 - `/usr/share/xsessions/tv-home.desktop` — so "TV Home" appears as a session

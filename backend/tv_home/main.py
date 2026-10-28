@@ -4,11 +4,20 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import config
-from .routes import bluetooth, display, misc, power, sound, state, wifi
+from .routes import bluetooth, display, misc, power, sound, state, update, wifi
 
 app = FastAPI(title="TV Home", version=config.VERSION)
 
-for router in (state.router, wifi.router, bluetooth.router, sound.router, display.router, power.router, misc.router):
+for router in (
+    state.router,
+    wifi.router,
+    bluetooth.router,
+    sound.router,
+    display.router,
+    power.router,
+    update.router,
+    misc.router,
+):
     app.include_router(router)
 
 # In production the backend also serves the built frontend (frontend/dist),

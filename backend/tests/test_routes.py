@@ -95,3 +95,25 @@ async def test_power_mock_never_touches_the_real_host(client):
     body = res.json()
     assert body["ok"]
     assert "(mock)" in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_update_check_and_apply_roundtrip(client):
+    res = await client.get("/api/update")
+    body = res.json()
+    assert body["available"]
+    assert body["url"]
+
+    res = await client.post("/api/update/apply", json={})
+    body = res.json()
+    assert body["ok"]
+
+    # Once "applied", the mock update provider reports up to date.
+    res = await client.get("/api/update")
+    assert res.json()["available"] is False
+
+
+@pytest.mark.asyncio
+async def test_about_includes_the_version_from_the_VERSION_file(client):
+    res = await client.get("/api/about")
+    assert res.json()["version"]

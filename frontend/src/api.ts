@@ -6,6 +6,7 @@ import type {
   AboutInfo,
   ServerEvent,
   SoundState,
+  UpdateInfo,
   WifiState,
 } from "./types";
 
@@ -66,6 +67,9 @@ export const api = {
     post<{ ok: boolean; message: string }>("/api/power", { action }),
 
   wallpaperNext: () => post<{ ok: boolean }>("/api/wallpaper"),
+
+  checkUpdate: () => req<UpdateInfo>("/api/update"),
+  applyUpdate: (url?: string | null) => post<{ ok: boolean; message: string }>("/api/update/apply", { url }),
 };
 
 export function connectEvents(onEvent: (e: ServerEvent) => void): () => void {

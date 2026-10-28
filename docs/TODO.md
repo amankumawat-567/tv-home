@@ -36,6 +36,14 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
       verified; `xrandr`/`xset` calls in `system/display.py` are
       *unverified*. Phone-typing (QR → local web page) and a dedicated
       first-run wizard screen are **not built yet** (see below).
+- [x] **Y6 Update from GitHub releases** — Settings → About checks
+      `GITHUB_REPO`'s latest release and installs it with one select.
+      *Check verified* (a plain HTTPS call to the public GitHub API, works
+      from anywhere — `backend/tv_home/system/update.py`); *apply is
+      unverified* (it re-runs `session/install.sh`, so it inherits that
+      script's own unverified status). CI (`.github/workflows/ci.yml`) and
+      the release packaging (`.github/workflows/release.yml`) that this
+      depends on are both live and have run successfully.
 
 ## Not built yet
 

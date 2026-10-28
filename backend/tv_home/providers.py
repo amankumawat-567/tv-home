@@ -10,12 +10,21 @@ if config.MOCK:
     from .mock import display as display_provider
     from .mock import power as power_provider
     from .mock import sound as sound_provider
+    from .mock import update as update_provider
     from .mock import wifi as wifi_provider
 else:
     from .system import bluetooth as bluetooth_provider
     from .system import display as display_provider
     from .system import power as power_provider
     from .system import sound as sound_provider
+    from .system import update as update_provider
     from .system import wifi as wifi_provider
 
-__all__ = ["wifi_provider", "bluetooth_provider", "sound_provider", "display_provider", "power_provider"]
+__all__ = [
+    "wifi_provider",
+    "bluetooth_provider",
+    "sound_provider",
+    "display_provider",
+    "power_provider",
+    "update_provider",
+]
