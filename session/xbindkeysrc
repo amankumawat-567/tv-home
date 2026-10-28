@@ -1,0 +1,24 @@
+# Global key grabs so Home, volume and recovery work over any full-screen app
+# on X11 — see the PRD's key map (Input: remote and keyboard). Installed to
+# ~/.config/tv-home/xbindkeysrc by install.sh and loaded by
+# tv-home-session.sh. Needs `xbindkeys` and `curl` on the real PC.
+
+# Home: close whatever app is running and show Home.
+"curl -fs -o /dev/null -X POST http://127.0.0.1:8000/api/home"
+    XF86HomePage
+    F12
+
+# Volume: changes system volume and shows a toast, even inside a running app.
+"curl -fs -o /dev/null -X POST -H 'Content-Type: application/json' -d '{\"action\":\"up\"}' http://127.0.0.1:8000/api/sound"
+    XF86AudioRaiseVolume
+
+"curl -fs -o /dev/null -X POST -H 'Content-Type: application/json' -d '{\"action\":\"down\"}' http://127.0.0.1:8000/api/sound"
+    XF86AudioLowerVolume
+
+"curl -fs -o /dev/null -X POST -H 'Content-Type: application/json' -d '{\"action\":\"mute\"}' http://127.0.0.1:8000/api/sound"
+    XF86AudioMute
+
+# Recovery: always reaches the desktop (Y3), independent of the backend's own
+# health — this runs even if TV Home has crashed outright.
+"$HOME/.local/bin/tv-home-recover"
+    Control+Alt+d

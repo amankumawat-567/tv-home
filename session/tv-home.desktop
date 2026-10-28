@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=TV Home
+Comment=TV Home 2.0 — a Google TV-style kiosk session
+Exec=/usr/local/bin/tv-home-session
+Type=Application
+DesktopNames=TV-Home

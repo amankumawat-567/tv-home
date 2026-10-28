@@ -1,0 +1,11 @@
+[Unit]
+Description=TV Home backend (FastAPI)
+# No Restart= here on purpose: tv-home-session.sh's own loop drives restarts
+# and the 3-crashes-in-5-minutes fallback to the desktop (Y2) — a second,
+# independent restart policy here would race with it.
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/tv-home/.venv/bin/uvicorn tv_home.main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=%h/.local/share/tv-home/backend
+Restart=no
