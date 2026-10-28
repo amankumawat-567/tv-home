@@ -1,0 +1,24 @@
+{
+  "name": "tv-home-frontend",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 5173",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "preact": "^11.0.2",
+    "@preact/signals": "^2.0.2",
+    "@fontsource/lexend": "^5.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^24.19.2",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}

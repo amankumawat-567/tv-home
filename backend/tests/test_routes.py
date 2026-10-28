@@ -1,0 +1,97 @@
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+
+@pytest.fixture
+async def client():
+    from tv_home.main import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+
+
+@pytest.mark.asyncio
+async def test_state_shape(client):
+    res = await client.get("/api/state")
+    assert res.status_code == 200
+    body = res.json()
+    assert set(body) == {"user", "wallpaper", "apps", "catalog", "status"}
+    assert set(body["status"]) == {"wifi", "bluetooth", "volume", "muted", "clockWrong"}
+
+
+@pytest.mark.asyncio
+async def test_install_and_remove_roundtrip(client):
+    res = await client.post("/api/apps", json={"name": "Example", "url": "https://example.com"})
+    assert res.json()["ok"]
+    assert len(res.json()["apps"]) == 1
+    app_id = res.json()["apps"][0]["id"]
+
+    res = await client.delete(f"/api/apps/{app_id}")
+    assert res.json()["ok"]
+    assert res.json()["apps"] == []
+
+
+@pytest.mark.asyncio
+async def test_launch_unknown_app_fails(client):
+    res = await client.post("/api/apps/does-not-exist/launch")
+    assert res.json()["ok"] is False
+
+
+@pytest.mark.asyncio
+async def test_wifi_mock_flow(client):
+    res = await client.get("/api/wifi")
+    data = res.json()
+    assert data["available"]
+    assert any(n["ssid"] == "Cafe Guest" for n in data["networks"])
+
+    res = await client.post("/api/wifi/connect", json={"ssid": "Cafe Guest"})
+    assert res.json()["ok"]
+
+
+@pytest.mark.asyncio
+async def test_wifi_wrong_password_reports_plain_language_error(client):
+    res = await client.post("/api/wifi/connect", json={"ssid": "Home Network", "password": "wrong"})
+    body = res.json()
+    assert not body["ok"]
+    assert "password" in body["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_no_adapter_state(client, monkeypatch):
+    from tv_home.mock import bluetooth as bt
+
+    monkeypatch.setitem(bt._state, "hasAdapter", False)
+    res = await client.get("/api/bluetooth")
+    body = res.json()
+    assert body["available"] is False
+    assert "adapter" in body["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_sound_volume_steps(client):
+    before = (await client.get("/api/sound")).json()["volume"]
+    await client.post("/api/sound", json={"action": "up"})
+    after = (await client.get("/api/sound")).json()["volume"]
+    assert after == before + 5
+
+
+@pytest.mark.asyncio
+async def test_display_set_mode_returns_token_and_confirm_accepts_it(client):
+    modes = (await client.get("/api/display")).json()["modes"]
+    target = next(m for m in modes if not m["current"])
+    res = await client.post("/api/display", json={"id": target["id"]})
+    body = res.json()
+    assert body["ok"]
+    assert body["token"]
+
+    res = await client.post("/api/display/confirm", json={"token": body["token"]})
+    assert res.json()["ok"]
+
+
+@pytest.mark.asyncio
+async def test_power_mock_never_touches_the_real_host(client):
+    res = await client.post("/api/power", json={"action": "poweroff"})
+    body = res.json()
+    assert body["ok"]
+    assert "(mock)" in body["message"]

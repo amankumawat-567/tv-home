@@ -11,8 +11,9 @@ set up and used with a remote (or a keyboard standing in for one) alone.
 - `session/` — the OS glue that makes the backend+UI *be* the desktop session on
   the target PC (LightDM autologin, global hotkeys, a systemd watchdog, and the
   installer/uninstaller). These only run on the real Xubuntu box.
-- `tv-home.py` / `tv-store.py` — the v1 prototype (Flex Launcher-based), kept for
-  reference; superseded by everything above.
+- `base-version/` — the v1 prototype (`tv-home.py`/`tv-store.py`, Flex
+  Launcher-based), kept for reference; superseded by everything above.
+- `docs/` — the PRD and project documentation.
 
 See `frontend/README.md` and `backend/README.md` for how to run each piece in
 development (both support a mock mode with no real Wi-Fi/Bluetooth/Sound

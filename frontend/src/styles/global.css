@@ -1,0 +1,74 @@
+@import "@fontsource/lexend/400.css";
+@import "@fontsource/lexend/500.css";
+@import "@fontsource/lexend/700.css";
+@import "./tokens.css";
+@import "./components.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Lexend", "Ubuntu", sans-serif;
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  overflow: hidden; /* a TV shell never scrolls the page itself */
+  user-select: none; /* no text-selection cursor on a remote-driven UI */
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* 12-column grid used by app rows: banners span 2 columns each (5-6 per row,
+ * the next one peeking in at the edge), scrolling horizontally within the row. */
+.grid-12 {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - var(--safe-x) * 2) / 6 - 0.6rem);
+  gap: 1rem;
+  overflow: visible;
+}
+
+.focusable {
+  transition: transform var(--focus-ease), box-shadow var(--focus-ease), background var(--focus-ease), color var(--focus-ease);
+}
+
+.focusable.is-focused {
+  transform: scale(var(--focus-scale));
+  box-shadow: 0 0 0 var(--focus-outline) #ffffff, 0 0.3rem 0.8rem rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

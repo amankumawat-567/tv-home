@@ -1,0 +1,42 @@
+/* Design tokens straight from the PRD's Visual design section. Everything scales
+ * off the root font-size (1.85vh ≈ 20px at 1080p), sized in rem, so 1366×768 and
+ * any future 1080p+ TV both render the same layout at the same relative scale. */
+:root {
+  font-size: 1.85vh;
+
+  /* Colour tokens */
+  --bg: #101418;
+  --surface: #1b2028;
+  --surface-raised: #262c36;
+  --text: #f1f3f5;
+  --text-muted: #a9b1bc;
+  --accent: #ffb547;
+  --good: #6fdcb8;
+  --warn: #f5c451;
+  --bad: #ff8a80;
+
+  /* Type scale (px @ 1080p -> rem, root = ~20px): clock 34, title 44, row 26, body 24, label 20 */
+  --text-clock: 1.7rem;
+  --text-title: 2.2rem;
+  --text-row: 1.3rem;
+  --text-body: 1.2rem;
+  --text-label: 1rem; /* the PRD's own floor: nothing smaller than 20px at 1080p */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --safe-x: 5vw;
+  --safe-y: 5vh;
+
+  --radius-banner: 0.6rem;
+  --focus-outline: 0.15rem;
+  --focus-scale: 1.1;
+  --focus-ease: 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --focus-ease: 0ms;
+  }
+}

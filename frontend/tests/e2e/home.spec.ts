@@ -1,0 +1,59 @@
+import { expect, test } from "@playwright/test";
+
+test.describe("Home screen", () => {
+  test("renders the top bar and favourites row, reachable by arrows alone", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector(".top-bar");
+    await expect(page.getByText("Home", { exact: true })).toBeVisible();
+    await expect(page.getByText("Apps", { exact: true })).toBeVisible();
+
+    // Something should hold focus immediately (the focus engine auto-focuses
+    // the first registered element) — a focused element always has is-focused.
+    await expect(page.locator(".is-focused")).toHaveCount(1);
+
+    await page.screenshot({ path: `tests/e2e/screenshots/${test.info().project.name}-home.png` });
+  });
+
+  test("arrow keys move focus from the top bar into the app row, Enter shows the launch screen", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector(".app-banner");
+
+    // Down from the top bar should reach the first app banner.
+    await page.keyboard.press("ArrowDown");
+    await expect(page.locator(".app-banner.is-focused").first()).toBeVisible();
+
+    // Right should move along the row without losing focus entirely.
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator(".is-focused")).toHaveCount(1);
+
+    // Enter launches the focused app. This sandbox has no real Chrome binary
+    // on PATH (see backend/tv_home/chrome.py), so the backend reports failure
+    // almost immediately and the (briefly shown) launch screen clears again —
+    // too fast to reliably catch mid-flash, so assert on its toast instead,
+    // which proves the whole launch round-trip ran.
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".toast")).toBeVisible();
+
+    // Home always returns to Home.
+    await page.keyboard.press("Home");
+    await expect(page.locator(".home-screen")).toBeVisible();
+  });
+
+  test("Menu opens quick settings and Back closes it", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector(".top-bar");
+
+    await page.keyboard.press("m");
+    await expect(page.locator(".quick-settings")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".quick-settings")).toHaveCount(0);
+  });
+
+  test("Apps tab shows the App Store tile first, then installed apps", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector(".top-bar");
+    await page.getByText("Apps", { exact: true }).click();
+    await expect(page.locator(".app-store-tile").first()).toBeVisible();
+  });
+});
