@@ -1,0 +1,17 @@
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/test-results/
+frontend/playwright-report/
+
+# Python / backend
+backend/.venv/
+backend/**/__pycache__/
+backend/*.egg-info/
+backend/.pytest_cache/
+*.pyc
+
+# Runtime data (created under the real user's home on the TV box, never in-repo)
+.DS_Store
+*.log
