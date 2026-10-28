@@ -1,6 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect, request, test } from "@playwright/test";
+
+const BACKEND_URL = "http://127.0.0.1:8000";
 
 test.describe("Home screen", () => {
+  // These tests need at least two installed apps (to move focus *between*
+  // banners); seed them via the API rather than relying on whatever a
+  // developer happens to have installed locally — a clean checkout/CI run
+  // starts with none.
+  test.beforeAll(async () => {
+    const api = await request.newContext();
+    for (const id of ["netflix", "youtube"]) {
+      await api.post(`${BACKEND_URL}/api/apps`, { data: { id, name: id, url: "" } });
+    }
+    await api.dispose();
+  });
+
   test("renders the top bar and favourites row, reachable by arrows alone", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector(".top-bar");
