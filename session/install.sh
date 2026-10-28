@@ -69,6 +69,14 @@ rsync -a --delete "$REPO_ROOT/frontend/dist/" "$INSTALL_DIR/frontend/dist/" 2>/d
   || { mkdir -p "$INSTALL_DIR/frontend/dist"; cp -r "$REPO_ROOT/frontend/dist/." "$INSTALL_DIR/frontend/dist/"; }
 [ -f "$REPO_ROOT/VERSION" ] && cp "$REPO_ROOT/VERSION" "$INSTALL_DIR/VERSION"
 
+# Seed the starter wallpaper pack only if there's nothing there yet — never
+# overwrite wallpapers a user has already added or replaced.
+if [ -d "$REPO_ROOT/wallpapers" ] && [ -z "$(ls -A "$CONFIG_DIR/wallpapers" 2>/dev/null)" ]; then
+  log "Seeding the starter wallpaper pack"
+  mkdir -p "$CONFIG_DIR/wallpapers"
+  cp "$REPO_ROOT"/wallpapers/*.jpg "$CONFIG_DIR/wallpapers/" 2>/dev/null || true
+fi
+
 log "Installing the backend virtualenv"
 [ -d "$INSTALL_DIR/.venv" ] || python3 -m venv "$INSTALL_DIR/.venv"
 "$INSTALL_DIR/.venv/bin/pip" install -q --upgrade -e "$INSTALL_DIR/backend"

@@ -4,6 +4,15 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.0.1]
+
+### Added
+
+- A starter wallpaper pack (`wallpapers/`) — 8 real photos, originally from
+  Unsplash, tinted to match the UI's dark palette. `session/install.sh` now
+  seeds them on a fresh install (never overwriting wallpapers you've already
+  added).
+
 ## [2.0.0] — full rewrite
 
 Replaces the v1 Flex Launcher prototype (`base-version/`) with a proper

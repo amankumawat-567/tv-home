@@ -58,7 +58,8 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
 - [ ] Remote key remapping / learn mode (I3, P2 — lowest priority in the PRD).
 - [ ] Wallpaper slideshow is a local-only UI toggle right now
       (`settings/WallpaperPage.tsx`) — it doesn't persist to the backend or
-      actually rotate wallpapers on a timer yet.
+      actually rotate wallpapers on a timer yet. (A starter pack of 8 real
+      photos *is* seeded by `session/install.sh` now — see `wallpapers/`.)
 - [ ] A real Material Symbols icon set (see `docs/DESIGN.md`'s "Known gaps").
 
 ## Needs the real PC to finish verifying

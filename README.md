@@ -41,6 +41,8 @@ the installer again from a freshly downloaded release.
 - `base-version/` — the v1 prototype (`tv-home.py`/`tv-store.py`, Flex
   Launcher-based), kept for reference; superseded by everything above.
 - `docs/` — the PRD, architecture/design docs, diagrams, and `TODO.md`.
+- `wallpapers/` — a starter pack of 8 real photos (tinted to match the UI),
+  seeded onto a fresh install by `session/install.sh`.
 - `scripts/`, `makefile` — local dev convenience (`make dev`, `make test`, …).
 
 ## Developing

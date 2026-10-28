@@ -55,6 +55,7 @@ jobs:
           mkdir -p "$STAGE/frontend"
           cp -r frontend/dist "$STAGE/frontend/dist"
           cp -r session "$STAGE/session"
+          cp -r wallpapers "$STAGE/wallpapers"
           TARBALL="tv-home-${{ steps.version.outputs.version }}.tar.gz"
           tar czf "$TARBALL" "$STAGE"
           echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
