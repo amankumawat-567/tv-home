@@ -38,12 +38,14 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
       first-run wizard screen are **not built yet** (see below).
 - [x] **Y6 Update from GitHub releases** — Settings → About checks
       `GITHUB_REPO`'s latest release and installs it with one select.
-      *Check verified* (a plain HTTPS call to the public GitHub API, works
-      from anywhere — `backend/tv_home/system/update.py`); *apply is
-      unverified* (it re-runs `session/install.sh`, so it inherits that
-      script's own unverified status). CI (`.github/workflows/ci.yml`) and
-      the release packaging (`.github/workflows/release.yml`) that this
-      depends on are both live and have run successfully.
+      *Check is verified live* against the real repo
+      (`backend/tv_home/system/update.py` correctly found v2.0.0 and its
+      asset URL); *apply is unverified* (it re-runs `session/install.sh`, so
+      it inherits that script's own unverified status). CI
+      (`.github/workflows/ci.yml`) and the release packaging
+      (`.github/workflows/release.yml`) are both live at
+      [github.com/amankumawat-567/tv-home](https://github.com/amankumawat-567/tv-home)
+      and have run successfully.
 
 ## Not built yet
 
