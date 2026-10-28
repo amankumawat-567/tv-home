@@ -34,7 +34,12 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
 - [x] **M7 Polish** — display settings + auto-revert, date/time, toasts,
       screensaver, first-run groundwork. *Mixed*: toasts/screensaver/UI
       verified; `xrandr`/`xset` calls in `system/display.py` are
-      *unverified*. Phone-typing (QR → local web page) and a dedicated
+      *unverified*. The screen-off timer is now app-aware — launching an app
+      inhibits it and Home re-arms it (`display_provider.inhibit()`/
+      `restore()`), so a movie with no remote input for N minutes doesn't get
+      blanked mid-playback; the setting itself now persists across a backend
+      restart via `settings.json`, applied again on boot. Phone-typing (QR →
+      local web page) and a dedicated
       first-run wizard screen are **not built yet** (see below).
 - [x] **Y6 Update from GitHub releases** — Settings → About checks
       `GITHUB_REPO`'s latest release and installs it with one select.

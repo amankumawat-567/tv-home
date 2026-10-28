@@ -10,7 +10,13 @@ import re
 import time
 import uuid
 
+from ..config import SETTINGS_FILE
+from ..state_store import read_json, write_json
+
 _pending: dict[str, dict] = {}
+# 0 = never. Persisted to settings.json (survives a backend/reboot restart)
+# since xset's own timer is reset by every fresh X session anyway.
+_screen_off_minutes = read_json(SETTINGS_FILE, {}).get("screenOffMinutes", 0)
 
 
 async def _run(args: list[str], timeout: float = 20) -> tuple[int, str, str]:
@@ -51,13 +57,11 @@ async def get_state() -> dict:
                 res, rate, current = m.group(1), m.group(2), m.group(3) == "*"
                 modes.append({"id": f"{res}@{rate}", "label": f"{res} @ {round(float(rate))}Hz", "current": current})
 
-    timer_code, timer_out, _ = await _run(["xset", "q"])
-    off_minutes = 0
-    if not timer_code:
-        m = re.search(r"Standby:\s*(\d+)", timer_out)
-        if m:
-            off_minutes = int(m.group(1)) // 60
-    return {"available": True, "modes": modes, "screenOffMinutes": off_minutes}
+    # Reported from our own tracked setting, not a live `xset q` query: while
+    # an app is running the live timer is deliberately inhibited (see
+    # inhibit()/restore() below), which would otherwise make this page show
+    # "Never" even though the user's actual preference is unchanged.
+    return {"available": True, "modes": modes, "screenOffMinutes": _screen_off_minutes}
 
 
 async def set_mode(mode_id: str) -> tuple[bool, str]:
@@ -94,6 +98,33 @@ async def revert_if_unconfirmed(token: str) -> None:
 
 
 async def set_screen_off(minutes: int) -> tuple[bool, str]:
-    seconds = minutes * 60
-    code, _, err = await _run(["xset", "s", str(seconds), str(seconds), "dpms", str(seconds), str(seconds), str(seconds)])
+    global _screen_off_minutes
+    _screen_off_minutes = minutes
+    settings = read_json(SETTINGS_FILE, {})
+    settings["screenOffMinutes"] = minutes
+    write_json(SETTINGS_FILE, settings)
+    return await _apply_screen_off(minutes)
+
+
+async def _apply_screen_off(minutes: int) -> tuple[bool, str]:
+    if minutes <= 0:
+        code, _, err = await _run(["xset", "s", "off", "-dpms"])
+    else:
+        seconds = minutes * 60
+        code, _, err = await _run(["xset", "s", str(seconds), str(seconds), "dpms", str(seconds), str(seconds), str(seconds)])
     return code == 0, "" if code == 0 else (err or "Couldn't change the screen-off timer.")
+
+
+async def inhibit() -> None:
+    """Suspend the screen-off timer entirely — called whenever an app is
+    launched. xset's idle timer can't tell "nobody's touched the remote" from
+    "a 2-hour movie is playing with no input"; without this, Settings >
+    Display's own screen-off minutes would blank the screen mid-movie."""
+    await _run(["xset", "s", "off", "-dpms"])
+
+
+async def restore() -> None:
+    """Re-arm whatever Settings > Display's screen-off timer was set to —
+    called when the Home key closes an app (A2) or `go_home` is otherwise
+    triggered, so the timer only ever counts idle time on Home itself."""
+    await _apply_screen_off(_screen_off_minutes)

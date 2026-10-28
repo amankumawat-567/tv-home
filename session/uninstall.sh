@@ -10,6 +10,7 @@ set -euo pipefail
 
 CONFIG_DIR="$HOME/.config/tv-home"
 INSTALL_DIR="$HOME/.local/share/tv-home"
+LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/50-tv-home.conf
 PURGE=false
 [ "${1:-}" = "--purge" ] && PURGE=true
 
@@ -37,6 +38,11 @@ restore_or_remove /usr/share/xsessions/tv-home.desktop
 rm -f "$HOME/.local/bin/tv-home-recover"
 rm -f "$CONFIG_DIR/xbindkeysrc"
 
+if [ -e "$LIGHTDM_CONF" ]; then
+  sudo rm -f "$LIGHTDM_CONF" 2>/dev/null || rm -f "$LIGHTDM_CONF"
+  log "Removed autologin ($LIGHTDM_CONF) — the login screen will ask again next boot"
+fi
+
 if $PURGE; then
   log "Removing $INSTALL_DIR and $CONFIG_DIR (--purge)"
   rm -rf "$INSTALL_DIR" "$CONFIG_DIR"
@@ -46,6 +52,5 @@ fi
 
 cat <<'EOF'
 
-TV Home 2.0 is uninstalled. If you enabled autologin into it, remove that
-LightDM snippet too (see session/README.md) and reboot.
+TV Home 2.0 is uninstalled. Reboot for the login screen to go back to normal.
 EOF

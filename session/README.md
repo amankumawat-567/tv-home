@@ -42,11 +42,12 @@ and installs:
 Any existing file at those system paths is backed up to `<path>.tv-home-orig`
 before being overwritten (once).
 
-## Enabling autologin (manual, on purpose)
+## Autologin
 
-Autologin config is shared across every user on the machine, so the installer
-doesn't touch it automatically. To boot straight into TV Home as `YOURUSER`,
-create `/etc/lightdm/lightdm.conf.d/50-tv-home.conf`:
+On a fresh interactive install (not an update, not `--from-release`),
+`install.sh` asks whether to boot straight into TV Home and as which user,
+then writes `/etc/lightdm/lightdm.conf.d/50-tv-home.conf` itself (backed up
+like every other system file it touches, if one already existed there):
 
 ```ini
 [Seat:*]
@@ -54,8 +55,14 @@ autologin-user=YOURUSER
 autologin-session=tv-home
 ```
 
-Then reboot. Until you do this, you can still select "TV Home" by hand from
-the session chooser on the login screen.
+It only *asks* — it never assumes — because this setting is shared across
+every user on the machine, not scoped to TV Home. The prompt is skipped
+(leaving autologin off) when: it's already configured, the run is
+non-interactive (no TTY — this is also how the backend's own self-update
+re-invokes this script, so an update never silently changes your login
+screen), or the machine has no LightDM at all. Say no, or skip it, and you
+can still select "TV Home" by hand from the session chooser at login — or
+re-run `install.sh` later to be asked again.
 
 ## Uninstall
 
@@ -64,8 +71,7 @@ the session chooser on the login screen.
 ./session/uninstall.sh --purge  # also removes ~/.config/tv-home and the installed app
 ```
 
-Also remove `/etc/lightdm/lightdm.conf.d/50-tv-home.conf` if you enabled
-autologin, then reboot.
+Removes the autologin config too, if install.sh wrote one.
 
 ## What to verify on the real PC (from the PRD's own build-plan checks)
 

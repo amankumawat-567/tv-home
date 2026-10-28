@@ -12,9 +12,13 @@
 #   ./session/install.sh --from-release /path/to/extracted/release
 #
 # NOT RUNNABLE on this macOS dev sandbox (needs apt, systemd, LightDM, X11) —
-# written to spec; run and verify on the real PC. See session/README.md for
-# the manual step this intentionally leaves to you (enabling autologin).
+# written to spec; run and verify on the real PC. On a fresh interactive
+# install it offers to enable autologin into this session (skipped entirely
+# on an update, non-interactive run, or a machine with no LightDM) — see
+# configure_autologin() below and session/README.md.
 set -euo pipefail
+
+LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/50-tv-home.conf
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$HOME/.local/share/tv-home"
@@ -39,6 +43,39 @@ backup() {
     sudo cp -a "$path" "$path.tv-home-orig" 2>/dev/null || cp -a "$path" "$path.tv-home-orig"
     log "Backed up $path -> $path.tv-home-orig"
   fi
+}
+
+configure_autologin() {
+  # Autologin is system-wide (every user on the machine, via LightDM), so
+  # unlike everything else this installer does, it asks first — skipped
+  # entirely rather than assumed on an update, a non-interactive run (e.g.
+  # the backend's own self-update, which runs this script with no TTY
+  # attached), a machine with no LightDM, or one that's already configured.
+  if [ ! -d /etc/lightdm ]; then
+    log "LightDM not found — pick \"TV Home\" manually at the login screen"
+    return
+  fi
+  if [ -e "$LIGHTDM_CONF" ]; then
+    log "Autologin already configured ($LIGHTDM_CONF) — leaving it alone"
+    return
+  fi
+  if [ ! -t 0 ]; then
+    log "Non-interactive run — skipping the autologin prompt (see session/README.md to enable it later)"
+    return
+  fi
+
+  read -r -p "==> Enable autologin straight into TV Home on boot? [y/N] " reply
+  case "$reply" in
+    [Yy]*) ;;
+    *) log "Skipped autologin — pick \"TV Home\" manually at the login screen, or re-run this script later"; return ;;
+  esac
+  read -r -p "==> Autologin as which user? [$USER] " autologin_user
+  autologin_user="${autologin_user:-$USER}"
+  id "$autologin_user" >/dev/null 2>&1 || { echo "No such user: $autologin_user — skipping autologin." >&2; return; }
+
+  sudo mkdir -p "$(dirname "$LIGHTDM_CONF")"
+  printf '[Seat:*]\nautologin-user=%s\nautologin-session=tv-home\n' "$autologin_user" | sudo tee "$LIGHTDM_CONF" >/dev/null
+  log "Autologin enabled for $autologin_user — reboot to try it (remove $LIGHTDM_CONF to undo, or run session/uninstall.sh)"
 }
 
 log "Checking prerequisites"
@@ -107,15 +144,11 @@ if $FROM_RELEASE; then
   exit 0
 fi
 
+configure_autologin
+
 cat <<EOF
 
-TV Home 2.0 is installed.
-
-One manual step remains on purpose — enabling autologin into this session
-touches LightDM's config for every user on this machine, so it's not done
-automatically. See session/README.md for the one-line snippet to add under
-/etc/lightdm/lightdm.conf.d/.
-
-Until then, you can pick "TV Home" from the session chooser on the login
-screen to try it.
+TV Home 2.0 is installed. If you didn't enable autologin just now, pick
+"TV Home" from the session chooser on the login screen to try it — see
+session/README.md to turn autologin on (or off) later.
 EOF

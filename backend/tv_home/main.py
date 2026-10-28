@@ -1,12 +1,25 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import config
+from .providers import display_provider
 from .routes import bluetooth, display, misc, power, sound, state, update, wifi
 
-app = FastAPI(title="TV Home", version=config.VERSION)
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # xset's timer doesn't survive a process restart the way our own
+    # settings.json does — re-apply it so a configured screen-off minutes
+    # takes effect immediately on boot, not only after the next Settings >
+    # Display visit or app launch/close (see display_provider.restore()).
+    await display_provider.restore()
+    yield
+
+
+app = FastAPI(title="TV Home", version=config.VERSION, lifespan=lifespan)
 
 for router in (
     state.router,

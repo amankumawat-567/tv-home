@@ -4,7 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from .. import apps, chrome, clock, events, info
 from ..models import InstallBody, MoveBody
-from ..providers import bluetooth_provider, sound_provider, wifi_provider
+from ..providers import bluetooth_provider, display_provider, sound_provider, wifi_provider
 from ..wallpaper import current_wallpaper
 
 router = APIRouter()
@@ -74,6 +74,9 @@ async def ws_events(websocket: WebSocket):
 async def post_home():
     ok, message = chrome.go_home()
     events.publish_running(None)
+    # Only Home counts as "idle" — re-arm whatever screen-off timer Settings >
+    # Display is set to (see display_provider.inhibit() below for why).
+    await display_provider.restore()
     return {"ok": ok, "message": message}
 
 
@@ -84,6 +87,9 @@ async def launch_app(app_id: str):
         app = next((a for a in apps.load_apps() if a["id"] == app_id), None)
         if app:
             events.publish_running({"id": app["id"], "name": app["name"]})
+        # An app owns the screen now — suspend the idle screen-off timer so a
+        # long movie with no remote input doesn't get blanked mid-playback.
+        await display_provider.inhibit()
     return {"ok": ok, "message": message}
 
 

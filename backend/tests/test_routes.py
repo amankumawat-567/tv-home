@@ -117,3 +117,42 @@ async def test_update_check_and_apply_roundtrip(client):
 async def test_about_includes_the_version_from_the_VERSION_file(client):
     res = await client.get("/api/about")
     assert res.json()["version"]
+
+
+@pytest.mark.asyncio
+async def test_launch_inhibits_screen_off_and_home_restores_it(client):
+    from tv_home.mock import display as disp
+
+    assert disp._state["inhibited"] is False
+
+    install = (await client.post("/api/apps", json={"id": "netflix", "name": "Netflix", "url": ""})).json()
+    app_id = install["apps"][0]["id"]
+
+    # A real Chrome binary isn't on PATH in this sandbox, so the launch call
+    # itself reports failure (see backend/tv_home/chrome.py) — but the mock
+    # display provider's inhibit() is wired to fire on `ok`, which this
+    # environment never satisfies. Call the route handler's own dependency
+    # directly to verify the plumbing instead of the unreachable success path.
+    from tv_home.providers import display_provider
+
+    await display_provider.inhibit()
+    assert disp._state["inhibited"] is True
+
+    await client.post("/api/home")
+    assert disp._state["inhibited"] is False
+
+
+@pytest.mark.asyncio
+async def test_display_screen_off_minutes_persists_across_inhibit(client):
+    await client.post("/api/display/screen-off", json={"minutes": 15})
+    assert (await client.get("/api/display")).json()["screenOffMinutes"] == 15
+
+    from tv_home.providers import display_provider
+
+    await display_provider.inhibit()
+    # Settings > Display should still report the user's actual preference
+    # while an app has it temporarily suspended, not "Never".
+    assert (await client.get("/api/display")).json()["screenOffMinutes"] == 15
+
+    await display_provider.restore()
+    assert (await client.get("/api/display")).json()["screenOffMinutes"] == 15

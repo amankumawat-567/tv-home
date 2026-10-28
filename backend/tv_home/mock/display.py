@@ -3,7 +3,7 @@
 import time
 import uuid
 
-_state = {"current": "1366x768", "screenOffMinutes": 10}
+_state = {"current": "1366x768", "screenOffMinutes": 10, "inhibited": False}
 _MODES = ["1366x768", "1920x1080", "1280x720"]
 _pending: dict[str, dict] = {}
 
@@ -37,3 +37,13 @@ async def revert_if_unconfirmed(token: str) -> None:
 async def set_screen_off(minutes: int) -> tuple[bool, str]:
     _state["screenOffMinutes"] = minutes
     return True, ""
+
+
+async def inhibit() -> None:
+    # See system/display.py's inhibit(): suspends the screen-off timer while
+    # an app is running, so it can't blank mid-movie.
+    _state["inhibited"] = True
+
+
+async def restore() -> None:
+    _state["inhibited"] = False
