@@ -45,6 +45,10 @@ See `docs/PRD.pdf` for the full product spec this implements.
 
 ## 2. How the pieces talk to each other
 
+See `docs/diagrams/` for this as Mermaid diagrams (architecture, the app
+launch/close sequence, the focus-navigation state machine, and the boot/
+recovery flow) — the ASCII version below is the quick-reference.
+
 ```
 [Remote / keyboard] → [Frontend: Preact UI, Chrome kiosk window]
                             │  REST (fetch) + WebSocket (/api/events)
