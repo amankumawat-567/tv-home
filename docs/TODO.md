@@ -72,7 +72,8 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
 Everything under `backend/tv_home/system/` and `session/` — see each file's
 own "NOT RUNNABLE on this macOS sandbox" header and `session/README.md`'s
 verification checklist (10 cold boots, the 3-crash fallback, Ctrl+Alt+D,
-global Home/volume keys, the compositor requirement).
+global Home/volume keys). The compositor setting (off, confirmed on real
+hardware) is the one item in this list that's already been checked there.
 
 ## Open product decisions (from the PRD, not yet re-decided)
 

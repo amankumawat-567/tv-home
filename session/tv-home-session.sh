@@ -9,7 +9,8 @@
 # NOT RUNNABLE on this macOS dev sandbox — needs X11, xfwm4, xbindkeys,
 # systemd --user and a real Chrome on PATH. Written to the PRD's own
 # "Done when" checks (M5): verify on the real PC with 10 cold boots and by
-# killing the shell 3 times to confirm the desktop fallback.
+# killing the shell 3 times to confirm the desktop fallback. (The compositor
+# setting below IS confirmed on the real PC; the rest of this script isn't.)
 set -u
 
 APPDIR="$HOME/.config/tv-home"
@@ -44,9 +45,14 @@ find_chrome() {
   return 1
 }
 
-# xfwm4's compositor must stay ON — turning it off produced a black Chrome
-# window on this hardware's Intel GPU (see the PRD's constraints).
-xfwm4 --compositor=on --sm-client-disable &
+# The PRD's original constraint was compositor ON — toggling it off inside a
+# full XFCE desktop produced a black Chrome window on this hardware's Intel
+# GPU. Confirmed on the real PC that this dedicated from-boot TV-only
+# xsession doesn't hit that bug, so it's off here for the lower CPU use
+# (no desktop/compositor effects running at all, unlike the scenario the
+# original constraint was found in).
+xfwm4 --compositor=off --sm-client-disable &
+xset s off -dpms 2>/dev/null  # our own code owns screen blanking — see backend/tv_home/system/display.py
 xsetroot -solid "#101418" 2>/dev/null
 xbindkeys -f "$APPDIR/xbindkeysrc" &
 

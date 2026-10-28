@@ -105,15 +105,19 @@ how the project was developed and tested outside the target Xubuntu PC.
 
 ## 5. Session (OS integration)
 
-LightDM autologin → a custom X11 session (`tv-home-session.sh`): starts
-`xfwm4` (compositor on — required for this hardware's GPU), the backend, and
-a Chrome kiosk window pointed at the backend's own URL. `xbindkeysrc` grabs
-Home/volume/recovery keys globally so they work over a running app. A systemd
-unit restarts the backend on crash, falling back to the regular desktop after
-repeated failures. `install.sh`/`uninstall.sh` set all of this up and back out.
+LightDM autologin (offered interactively by `install.sh`) → a custom X11
+session (`tv-home-session.sh`): starts `xfwm4` (compositor off — confirmed on
+the real hardware for this dedicated from-boot session; a full desktop
+session with it off is a different, documented-buggy scenario), the backend,
+and a Chrome kiosk window pointed at the backend's own URL. `xbindkeysrc`
+grabs Home/volume/recovery keys globally so they work over a running app. A
+systemd unit restarts the backend on crash, falling back to the regular
+desktop after repeated failures. `install.sh`/`uninstall.sh` set all of this
+up and back out.
 
-This layer only runs on Linux and has not been exercised end-to-end outside
-the real PC — see `session/README.md` for what to verify there.
+This layer only runs on Linux and most of it hasn't been exercised
+end-to-end outside the real PC (the compositor setting is the confirmed
+exception) — see `session/README.md` for what to verify there.
 
 ## 6. Data stores
 

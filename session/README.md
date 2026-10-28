@@ -4,9 +4,10 @@ The files here make the backend + frontend *be* the Xubuntu desktop session on
 the real PC. **Nothing in this folder runs on macOS or any non-Linux
 sandbox** — it needs X11, `xfwm4`, `xbindkeys`, `systemd --user` and LightDM.
 Everything was written to the PRD's spec and to v1's already-proven patterns
-(the `/proc`-based window closing, the X11 compositor requirement), but has
-not been run end-to-end. Treat it as a first draft to verify on the real
-machine, not as tested code.
+(the `/proc`-based window closing), but most of it hasn't been run end-to-end
+— treat it as a first draft to verify on the real machine, not as tested
+code. The compositor setting (below) is the one exception: it's been
+confirmed directly on the target hardware.
 
 ## Install
 
@@ -82,6 +83,10 @@ Removes the autologin config too, if install.sh wrote one.
   (`tv-home-recover.sh` doesn't depend on it).
 - **Home, volume keys** work while a streaming app has focus (grabbed globally
   by `xbindkeys`, not by the frontend's own JS key handling).
-- **Compositor on**: if you ever see a black Chrome window, check `xfwm4` is
-  running with `--compositor=on` — it was required on this hardware's Intel
-  GPU even though it costs a little more CPU.
+- **If you ever see a black Chrome window**: this is the failure mode that
+  originally came up with the compositor off, inside a full XFCE desktop.
+  `tv-home-session.sh` runs `xfwm4 --compositor=off` because this dedicated
+  from-boot xsession has been confirmed not to hit that bug (no desktop or
+  other compositor effects running at all) — if it ever resurfaces here,
+  switch that line back to `--compositor=on` as a first fix, at the cost of
+  a little more CPU.

@@ -7,7 +7,7 @@ real Xubuntu PC (LightDM, X11, systemd); see `session/README.md`.
 ```mermaid
 flowchart TD
     Boot([Power on]) --> LightDM[LightDM autologin]
-    LightDM --> Session["tv-home-session.sh starts:\nxfwm4 --compositor=on, xbindkeys"]
+    LightDM --> Session["tv-home-session.sh starts:\nxfwm4 --compositor=off, xbindkeys"]
     Session --> CrashCheck{"3+ crashes in\nlast 5 minutes?"}
     CrashCheck -->|yes| Desktop
     CrashCheck -->|no| StartBackend["systemctl --user restart\ntv-home-backend.service"]
