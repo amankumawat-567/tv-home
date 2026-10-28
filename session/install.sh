@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 # Installs (or updates) TV Home 2.0 onto a Xubuntu PC: puts the frontend and
-# backend into ~/.local/share/tv-home, installs the X11 session, global
-# hotkeys, the systemd user unit, and the recovery script. Backs up any
-# system file it touches before changing it (Y5).
+# backend into a fixed location (~/.local/share/tv-home — never the folder
+# this script was run from, so deleting your Downloads afterwards is safe),
+# installs the X11 session, global hotkeys, the systemd user unit, and the
+# recovery command. Backs up any system file it touches before changing it
+# (Y5).
 #
 # From a source checkout (builds the frontend here — needs node/npm):
 #   ./session/install.sh
 #
-# From a downloaded release (ships a prebuilt frontend/dist — no node/npm
-# needed; this is also how the backend's own self-update, Y6, re-installs):
+# From a downloaded release (ships a prebuilt frontend/dist — node/npm are
+# never needed, from any folder name: whether a prebuilt frontend exists is
+# auto-detected, not inferred from how this script was invoked):
+#   ./session/install.sh
+#
+# From an arbitrary extracted release directory, not the one this script
+# lives in (this is also how the backend's own self-update, Y6, re-installs
+# non-interactively):
 #   ./session/install.sh --from-release /path/to/extracted/release
+#
+# Status check — installed path, session file, autologin, watchdog, backend
+# health — without installing or changing anything:
+#   ./session/install.sh --check
 #
 # NOT RUNNABLE on this macOS dev sandbox (needs apt, systemd, LightDM, X11) —
 # written to spec; run and verify on the real PC. On a fresh interactive
@@ -18,14 +30,20 @@
 # configure_autologin() below and session/README.md.
 set -euo pipefail
 
-LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/50-tv-home.conf
+# Loads last among lightdm.conf.d/*.conf (lexically after any "NN-..." file
+# using a two-digit prefix below 90, which covers every default Ubuntu/
+# Xubuntu autologin snippet seen in the wild) so TV Home's autologin wins
+# over a pre-existing one without having to touch that other file at all.
+LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/90-tv-home.conf
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$HOME/.local/share/tv-home"
 CONFIG_DIR="$HOME/.config/tv-home"
 FROM_RELEASE=false
 
-if [ "${1:-}" = "--from-release" ]; then
+if [ "${1:-}" = "--check" ]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+elif [ "${1:-}" = "--from-release" ]; then
   FROM_RELEASE=true
   REPO_ROOT="$(cd "$2" && pwd)"
   SCRIPT_DIR="$REPO_ROOT/session" # use the release's own session/ files, not this script's
@@ -43,6 +61,20 @@ backup() {
     sudo cp -a "$path" "$path.tv-home-orig" 2>/dev/null || cp -a "$path" "$path.tv-home-orig"
     log "Backed up $path -> $path.tv-home-orig"
   fi
+}
+
+other_autologin_configs() {
+  # Every file that sets autologin-user/-session besides our own, in the
+  # order LightDM would actually load them (lightdm.conf first, then
+  # conf.d/*.conf alphabetically) — so a default Ubuntu/Xubuntu install's own
+  # autologin snippet (commonly .../lightdm.conf.d/50-autologin.conf,
+  # targeting the stock "xubuntu" session) is found and called out by name.
+  local f
+  for f in /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.d/*.conf; do
+    [ -e "$f" ] || continue
+    [ "$f" = "$LIGHTDM_CONF" ] && continue
+    grep -qE '^\s*autologin-(user|session)\s*=' "$f" 2>/dev/null && echo "$f"
+  done
 }
 
 configure_autologin() {
@@ -64,6 +96,14 @@ configure_autologin() {
     return
   fi
 
+  local others
+  others="$(other_autologin_configs)"
+  if [ -n "$others" ]; then
+    log "Found existing autologin settings that would otherwise conflict:"
+    while IFS= read -r f; do log "  - $f ($(grep -E '^\s*autologin-(user|session)\s*=' "$f" | tr '\n' ' '))"; done <<< "$others"
+    log "TV Home's config ($LIGHTDM_CONF) loads after these, so it will win — nothing above is modified."
+  fi
+
   read -r -p "==> Enable autologin straight into TV Home on boot? [y/N] " reply
   case "$reply" in
     [Yy]*) ;;
@@ -78,6 +118,57 @@ configure_autologin() {
   log "Autologin enabled for $autologin_user — reboot to try it (remove $LIGHTDM_CONF to undo, or run session/uninstall.sh)"
 }
 
+run_doctor() {
+  echo "TV Home — status"
+  echo
+  echo "Install path: $INSTALL_DIR"
+  if [ -d "$INSTALL_DIR" ]; then
+    echo "  present, version $(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "unknown")"
+  else
+    echo "  not installed"
+  fi
+  echo
+  echo "Session file: /usr/share/xsessions/tv-home.desktop"
+  if [ -e /usr/share/xsessions/tv-home.desktop ]; then
+    grep '^Exec=' /usr/share/xsessions/tv-home.desktop 2>/dev/null | sed 's/^/  /'
+    if [ -x /usr/local/bin/tv-home-session ]; then
+      echo "  /usr/local/bin/tv-home-session: present and executable"
+    else
+      echo "  /usr/local/bin/tv-home-session: MISSING or not executable"
+    fi
+  else
+    echo "  not installed"
+  fi
+  echo
+  echo "Autologin (checked in LightDM's own load order — last match per key wins):"
+  local f u s found=false
+  for f in /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.d/*.conf; do
+    [ -e "$f" ] || continue
+    u="$(grep -E '^\s*autologin-user\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2-)"
+    s="$(grep -E '^\s*autologin-session\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2-)"
+    if [ -n "$u$s" ]; then
+      found=true
+      echo "  $f: user=${u:-<unset>} session=${s:-<unset>}"
+    fi
+  done
+  $found || echo "  none configured — pick \"TV Home\" manually at the login screen"
+  echo
+  echo "Backend service (systemd --user):"
+  systemctl --user status tv-home-backend.service --no-pager -l 2>&1 | head -6 | sed 's/^/  /' || echo "  not found"
+  echo
+  echo "Backend health (http://127.0.0.1:8000/api/state):"
+  if curl -fs -m 3 http://127.0.0.1:8000/api/state 2>/dev/null | grep -q '"user"'; then
+    echo "  reachable"
+  else
+    echo "  NOT reachable"
+  fi
+}
+
+if [ "${1:-}" = "--check" ]; then
+  run_doctor
+  exit 0
+fi
+
 log "Checking prerequisites"
 if command -v apt-get >/dev/null; then
   sudo apt-get update -qq
@@ -87,15 +178,21 @@ else
 fi
 command -v python3 >/dev/null || { echo "Missing required command: python3" >&2; exit 1; }
 
-if $FROM_RELEASE; then
-  [ -d "$REPO_ROOT/frontend/dist" ] || { echo "No prebuilt frontend/dist in $REPO_ROOT — is this a release tarball?" >&2; exit 1; }
-  log "Using the prebuilt frontend from the release (no build needed)"
-else
+# Whether to build the frontend is auto-detected from what's actually on
+# disk, never from how this script was invoked — a release tarball run
+# directly (no --from-release) has a prebuilt frontend/dist and no
+# frontend/package.json, so it must never require node/npm.
+if [ -d "$REPO_ROOT/frontend/dist" ]; then
+  log "Using the prebuilt frontend ($REPO_ROOT/frontend/dist) — no build needed"
+elif [ -f "$REPO_ROOT/frontend/package.json" ]; then
   for bin in node npm; do
     command -v "$bin" >/dev/null || { echo "Missing required command: $bin (only needed when building from source)" >&2; exit 1; }
   done
   log "Building the frontend"
   (cd "$REPO_ROOT/frontend" && npm install && npm run build)
+else
+  echo "Neither frontend/dist nor frontend/package.json found under $REPO_ROOT — is this a real TV Home checkout or release?" >&2
+  exit 1
 fi
 
 log "Installing to $INSTALL_DIR"
@@ -150,5 +247,6 @@ cat <<EOF
 
 TV Home 2.0 is installed. If you didn't enable autologin just now, pick
 "TV Home" from the session chooser on the login screen to try it — see
-session/README.md to turn autologin on (or off) later.
+session/README.md to turn autologin on (or off) later, or run
+"$0 --check" any time to see its current status.
 EOF

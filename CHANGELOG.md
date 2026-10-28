@@ -4,6 +4,36 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.0.2]
+
+Fixes from a bug report filed after actually installing on the target
+Xubuntu 26.04 PC, plus autologin automation and an app-aware screen-off
+timer that had landed on `main` since 2.0.1 without a release. See
+`docs/TODO.md`'s "Fixed from real-hardware testing" for the full detail.
+
+### Fixed
+
+- Installing from a downloaded release tarball (any folder name) required
+  node/npm and then crashed — `install.sh` only skipped the frontend build
+  behind an explicit `--from-release` flag, which a plain extract-and-run
+  never passes. Now auto-detected from what's actually on disk.
+- A stock Xubuntu autologin config (`lightdm.conf.d/50-autologin.conf`,
+  pointing at the regular `xubuntu` session) silently won over TV Home's own.
+  TV Home's config moved to `90-tv-home.conf` (loads after any such default)
+  and the installer now scans for and reports conflicts before asking.
+- The Settings → Display screen-off timer could blank the screen mid-movie
+  (it had no idea an app was running). Launching an app now inhibits it;
+  Home re-arms it. The setting also now survives a backend restart.
+
+### Added
+
+- `./session/install.sh --check` — a status command: installed path/version,
+  session file presence, every autologin line found, the systemd service's
+  status, backend reachability. Installs or changes nothing.
+- `install.sh` now offers to enable autologin interactively on a fresh
+  install, instead of leaving it as a manual doc step (skipped on updates,
+  non-interactive runs, or a machine with no LightDM).
+
 ## [2.0.1]
 
 ### Added

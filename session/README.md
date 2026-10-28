@@ -11,27 +11,29 @@ confirmed directly on the target hardware.
 
 ## Install
 
-From a source checkout (builds the frontend — needs `node`/`npm`):
-
 ```sh
 ./session/install.sh
 ```
 
-From a downloaded release (ships a prebuilt frontend, so `node`/`npm` aren't
-needed on the target machine at all — see the top-level README's "Install"
-section):
+Run this from *either* a source checkout (needs `node`/`npm` to build the
+frontend) *or* an extracted release download (ships a prebuilt
+`frontend/dist`, so `node`/`npm` are never needed) — which one it's in is
+auto-detected by what's actually on disk (a `frontend/dist` folder vs. a
+`frontend/package.json`), not by how the script was invoked or what the
+containing folder is named. Extract the release tarball anywhere, under any
+name, and this just works.
 
-```sh
-./session/install.sh --from-release /path/to/extracted/tv-home-X.Y.Z
-```
+`./session/install.sh --from-release /path/to/extracted/release` additionally
+lets you point it at a directory *other than the one this script lives in* —
+this is how Settings → About's "Update" button re-installs non-interactively
+(`backend/tv_home/system/update.py` downloads the latest release, extracts
+it to a temp dir, and runs this exact flag against it), so there's only one
+install code path to verify for both a manual install and a self-update.
 
-This is also how Settings → About's "Update" button re-installs: it
-downloads the latest release tarball and runs this same installer against it
-(`backend/tv_home/system/update.py`), so there's only one install code path
-to verify.
-
-Either way, it sets up a backend virtualenv under `~/.local/share/tv-home`,
-and installs:
+Either way, everything is copied into a fixed location,
+`~/.local/share/tv-home` — nothing here ever points back at wherever you
+extracted or cloned from, so deleting that folder afterwards is safe. It also
+sets up a backend virtualenv there, and installs:
 
 - `/usr/local/bin/tv-home-session` — the session script
 - `/usr/share/xsessions/tv-home.desktop` — so "TV Home" appears as a session
@@ -47,14 +49,21 @@ before being overwritten (once).
 
 On a fresh interactive install (not an update, not `--from-release`),
 `install.sh` asks whether to boot straight into TV Home and as which user,
-then writes `/etc/lightdm/lightdm.conf.d/50-tv-home.conf` itself (backed up
-like every other system file it touches, if one already existed there):
+then writes `/etc/lightdm/lightdm.conf.d/90-tv-home.conf` itself:
 
 ```ini
 [Seat:*]
 autologin-user=YOURUSER
 autologin-session=tv-home
 ```
+
+The `90-` prefix is deliberate: a stock Ubuntu/Xubuntu install commonly
+already has its own autologin snippet (typically
+`lightdm.conf.d/50-autologin.conf`, pointing at the regular `xubuntu`
+session), and LightDM applies `conf.d/*.conf` files in lexical order with
+later files winning — `90-tv-home.conf` loads after any such default without
+needing to touch it. If one is found, the installer prints it before asking
+so you can see exactly what's there.
 
 It only *asks* — it never assumes — because this setting is shared across
 every user on the machine, not scoped to TV Home. The prompt is skipped
@@ -64,6 +73,19 @@ re-invokes this script, so an update never silently changes your login
 screen), or the machine has no LightDM at all. Say no, or skip it, and you
 can still select "TV Home" by hand from the session chooser at login — or
 re-run `install.sh` later to be asked again.
+
+## Checking status
+
+```sh
+./session/install.sh --check
+```
+
+Prints the installed path and version, whether the xsession files are in
+place, every `autologin-user`/`autologin-session` line found across
+`/etc/lightdm/lightdm.conf` and `lightdm.conf.d/*.conf` (in the order
+LightDM would apply them), the systemd `--user` service's status, and
+whether the backend answers on `http://127.0.0.1:8000`. Doesn't install or
+change anything.
 
 ## Uninstall
 

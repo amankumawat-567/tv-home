@@ -24,10 +24,11 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
       the QWERTY keyboard. *UI and mock flow verified*; real
       NetworkManager calls in `system/wifi.py` are *unverified*.
 - [x] **M5 Session and recovery** — session script, LightDM xsession,
-      xbindkeys, systemd unit, installer/uninstaller. *Unverified* — written
-      to spec; see `session/README.md` for exactly what to check once it's on
-      the real PC. (The crash-counting logic was unit-tested standalone in
-      bash outside the actual session script.)
+      xbindkeys, systemd unit, installer/uninstaller, a `--check` status
+      command. *Partially field-verified* — see "Fixed from real-hardware
+      testing" below for what's actually been run on the target PC; the rest
+      is still written-to-spec. (The crash-counting logic was separately
+      unit-tested standalone in bash.)
 - [x] **M6 Bluetooth** — scan/pair/connect/forget, no-adapter state.
       *The "no adapter" empty state is verified* (this PC has none yet
       either); pairing/connecting over `system/bluetooth.py` is *unverified*.
@@ -74,6 +75,38 @@ own "NOT RUNNABLE on this macOS sandbox" header and `session/README.md`'s
 verification checklist (10 cold boots, the 3-crash fallback, Ctrl+Alt+D,
 global Home/volume keys). The compositor setting (off, confirmed on real
 hardware) is the one item in this list that's already been checked there.
+
+## Fixed from real-hardware testing (2.0.2)
+
+A bug report from actually installing on the target Xubuntu 26.04 PC:
+
+- **Release installs required node/npm and crashed.** `install.sh` only
+  skipped the frontend build when invoked as `--from-release <dir>`; running
+  it plainly (as anyone extracting the tarball would) always assumed a
+  source checkout. Fixed: whether to build is now auto-detected from what's
+  on disk (`frontend/dist` present vs. `frontend/package.json` present),
+  regardless of how the script was invoked or what the containing folder is
+  named. Verified locally against a fake release-shaped directory with a
+  deliberately non-"tv-home" folder name.
+- **"Installs into the download folder" — audited, not reproduced.** Every
+  path that matters at runtime (the systemd unit's `ExecStart`/
+  `WorkingDirectory`, `main.py`'s static-frontend resolution, the pip
+  editable install) already resolves against the fixed
+  `~/.local/share/tv-home`, never the source/download directory — this was
+  very likely a symptom of the bug above (the script crashed before the copy
+  step ever ran, so nothing was installed at all). No code change beyond the
+  fix above; call it out again if it still reproduces once that's in place.
+- **A pre-existing autologin config silently won.** A stock Xubuntu install
+  commonly already has `lightdm.conf.d/50-autologin.conf` pointing at the
+  regular `xubuntu` session. Fixed: TV Home's own config moved to
+  `90-tv-home.conf` (loads after any such default, so it wins without
+  touching the other file), and the installer now scans for and prints any
+  conflicting autologin config before asking. Verified standalone against a
+  simulated `50-autologin.conf`.
+- **Added `./session/install.sh --check`** — installed path/version, session
+  file presence, every autologin line found (in LightDM's own load order),
+  the systemd service's status, and whether the backend answers on
+  `127.0.0.1:8000`, without installing or changing anything.
 
 ## Open product decisions (from the PRD, not yet re-decided)
 

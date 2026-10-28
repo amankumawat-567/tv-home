@@ -10,7 +10,10 @@ set -euo pipefail
 
 CONFIG_DIR="$HOME/.config/tv-home"
 INSTALL_DIR="$HOME/.local/share/tv-home"
-LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/50-tv-home.conf
+# 90-tv-home.conf as of 2.0.2 (made to reliably load last); 50-tv-home.conf
+# is the 2.0.1 name — remove both so an upgrade-then-uninstall cleans up
+# fully regardless of which version wrote it.
+LIGHTDM_CONFS=(/etc/lightdm/lightdm.conf.d/90-tv-home.conf /etc/lightdm/lightdm.conf.d/50-tv-home.conf)
 PURGE=false
 [ "${1:-}" = "--purge" ] && PURGE=true
 
@@ -38,10 +41,12 @@ restore_or_remove /usr/share/xsessions/tv-home.desktop
 rm -f "$HOME/.local/bin/tv-home-recover"
 rm -f "$CONFIG_DIR/xbindkeysrc"
 
-if [ -e "$LIGHTDM_CONF" ]; then
-  sudo rm -f "$LIGHTDM_CONF" 2>/dev/null || rm -f "$LIGHTDM_CONF"
-  log "Removed autologin ($LIGHTDM_CONF) — the login screen will ask again next boot"
-fi
+for LIGHTDM_CONF in "${LIGHTDM_CONFS[@]}"; do
+  if [ -e "$LIGHTDM_CONF" ]; then
+    sudo rm -f "$LIGHTDM_CONF" 2>/dev/null || rm -f "$LIGHTDM_CONF"
+    log "Removed autologin ($LIGHTDM_CONF) — the login screen will ask again next boot"
+  fi
+done
 
 if $PURGE; then
   log "Removing $INSTALL_DIR and $CONFIG_DIR (--purge)"
