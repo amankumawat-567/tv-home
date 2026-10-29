@@ -177,6 +177,28 @@ The five items that were left in "Not built yet" above:
   screenshots of the top bar, Quick Settings panel, and the Wi-Fi settings
   page's lock icons at 1920×1080 — no regressions).
 
+## Fixed from real-hardware testing (2.1.1)
+
+A real install on Xubuntu 26.04 completed with no errors (`install.sh --check`
+showed the install, session file, and systemd unit all present) but never
+booted into TV Home after reboot.
+
+- **Autologin silently never got configured.** `configure_autologin`'s guard
+  for skipping the prompt on a non-interactive run checked `[ ! -t 0 ]` (is
+  stdin a terminal) — but stdin isn't always a tty even when a real terminal
+  is genuinely attached, depending on exactly how the script gets invoked.
+  On the reporting machine, `sudo`'s own password prompts worked fine (sudo
+  reads from `/dev/tty` directly, not stdin), so the install appeared to
+  complete normally, but the `read -p` autologin prompt — which does read
+  from stdin — never appeared, and `/etc/lightdm/lightdm.conf.d/90-tv-home.conf`
+  was simply never written. Fixed: the prompt now reads from `/dev/tty`
+  directly too, matching `sudo`'s own behavior, and only gives up when
+  there's truly no controlling terminal anywhere (the actual case this guard
+  exists for — the backend's own non-interactive self-update, Y6). Confirmed
+  the missing config file on the reporting machine via `install.sh --check`
+  before writing the fix; the fix itself still needs a real reinstall to
+  verify the prompt now shows up end-to-end.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

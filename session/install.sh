@@ -92,9 +92,23 @@ configure_autologin() {
     log "Autologin already configured ($LIGHTDM_CONF) — leaving it alone"
     return
   fi
-  if [ ! -t 0 ]; then
-    log "Non-interactive run — skipping the autologin prompt (see session/README.md to enable it later)"
-    return
+
+  # read -p reads from stdin (fd 0), which isn't always the controlling
+  # terminal even when one is genuinely attached — e.g. this script run as a
+  # remote command string, through a task runner, or anything else that
+  # leaves fd 0 non-interactive. sudo already handles exactly this by
+  # prompting on /dev/tty directly instead of stdin; do the same here rather
+  # than silently skipping whenever fd 0 merely isn't a tty. Only give up
+  # when there's truly no controlling terminal at all (e.g. the backend's own
+  # self-update, run detached with no TTY anywhere) — that's the real
+  # non-interactive case this guard exists for.
+  local tty=/dev/tty
+  if [ ! -r "$tty" ] || [ ! -w "$tty" ]; then
+    if [ ! -t 0 ]; then
+      log "No controlling terminal available — skipping the autologin prompt (see session/README.md to enable it later)"
+      return
+    fi
+    tty=/dev/stdin
   fi
 
   local others
@@ -105,12 +119,12 @@ configure_autologin() {
     log "TV Home's config ($LIGHTDM_CONF) loads after these, so it will win — nothing above is modified."
   fi
 
-  read -r -p "==> Enable autologin straight into TV Home on boot? [y/N] " reply
+  read -r -p "==> Enable autologin straight into TV Home on boot? [y/N] " reply < "$tty"
   case "$reply" in
     [Yy]*) ;;
     *) log "Skipped autologin — pick \"TV Home\" manually at the login screen, or re-run this script later"; return ;;
   esac
-  read -r -p "==> Autologin as which user? [$USER] " autologin_user
+  read -r -p "==> Autologin as which user? [$USER] " autologin_user < "$tty"
   autologin_user="${autologin_user:-$USER}"
   id "$autologin_user" >/dev/null 2>&1 || { echo "No such user: $autologin_user — skipping autologin." >&2; return; }
 

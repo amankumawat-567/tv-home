@@ -67,13 +67,16 @@ needing to touch it. If one is found, the installer prints it before asking
 so you can see exactly what's there.
 
 It only *asks* — it never assumes — because this setting is shared across
-every user on the machine, not scoped to TV Home. The prompt is skipped
-(leaving autologin off) when: it's already configured, the run is
-non-interactive (no TTY — this is also how the backend's own self-update
-re-invokes this script, so an update never silently changes your login
-screen), or the machine has no LightDM at all. Say no, or skip it, and you
-can still select "TV Home" by hand from the session chooser at login — or
-re-run `install.sh` later to be asked again.
+every user on the machine, not scoped to TV Home. The prompt reads from
+`/dev/tty` directly (the same thing `sudo` already does for its own password
+prompt), so it still shows up even when the script was invoked in a way that
+leaves stdin non-interactive but a real terminal is attached. The prompt is
+skipped (leaving autologin off) only when: it's already configured, there's
+no controlling terminal at all (this is also how the backend's own
+self-update re-invokes this script, so an update never silently changes your
+login screen), or the machine has no LightDM at all. Say no, or skip it, and
+you can still select "TV Home" by hand from the session chooser at login —
+or re-run `install.sh` later to be asked again.
 
 ## Power actions (sleep/restart/shut down/go to desktop)
 

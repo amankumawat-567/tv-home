@@ -4,6 +4,25 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.1.1]
+
+Fixes a real install on Xubuntu 26.04 that completed successfully but never
+booted into TV Home: autologin was silently never configured.
+
+### Fixed
+
+- **The autologin prompt could silently never appear.** `configure_autologin`
+  in `session/install.sh` checked `[ ! -t 0 ]` (is stdin a terminal) to decide
+  whether to ask; stdin isn't always a tty even when a real terminal *is*
+  attached (depends on exactly how the script gets invoked), so on at least
+  one real machine the whole install ran to completion — including `sudo`
+  prompts, which read from `/dev/tty` directly and so worked fine — but the
+  `read -p` autologin prompt, which reads from stdin, never showed up and the
+  install finished with autologin silently left off. Fixed: the prompt now
+  reads from `/dev/tty` directly too, same as `sudo` already does, and only
+  gives up when there's truly no controlling terminal at all (the case this
+  guard exists for — the backend's own non-interactive self-update).
+
 ## [2.1.0]
 
 Closes out the PRD's remaining backlog — the five items that were sitting in
