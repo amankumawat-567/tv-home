@@ -4,6 +4,30 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.1.0]
+
+Closes out the PRD's remaining backlog — the five items that were sitting in
+`docs/TODO.md`'s "Not built yet". See "Added in 2.1.0" there for the detail
+behind each.
+
+### Added
+
+- **First-run setup wizard (Y4)**: Welcome → Wi-Fi → Remote → Apps → Home,
+  shown once per install, Home-key skippable at any step.
+- **Phone-typing via QR code (I2)**: the on-screen keyboard can hand off to a
+  phone — scan a QR code, type there, it appears live and auto-submits on
+  Done.
+- **Remote key remapping / learn mode (I3)**: Settings → Remote lets any of
+  the 8 actions be rebound to a different key, with a reset-to-defaults
+  option.
+- **Wallpaper slideshow now persists**: the interval (5/15/30/60 min) and
+  on/off state survive a backend restart and actually rotate wallpapers on a
+  timer, instead of being a local-only UI toggle.
+- **A real Material Symbols icon set**: hand-rolled stand-in icons replaced
+  with real Apache-2.0 Material Symbols path data, bundled inline (no runtime
+  network dependency). The Wi-Fi signal-bars icon stays hand-drawn on
+  purpose — it renders live signal strength, which no static glyph can.
+
 ## [2.0.3]
 
 Fixes "power features are not working like shutdown, go to desktop, restart

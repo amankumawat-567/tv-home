@@ -40,8 +40,8 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
       `restore()`), so a movie with no remote input for N minutes doesn't get
       blanked mid-playback; the setting itself now persists across a backend
       restart via `settings.json`, applied again on boot. Phone-typing (QR →
-      local web page) and a dedicated
-      first-run wizard screen are **not built yet** (see below).
+      local web page) and a dedicated first-run wizard screen are now built —
+      see "Added in 2.1.0" below.
 - [x] **Y6 Update from GitHub releases** — Settings → About checks
       `GITHUB_REPO`'s latest release and installs it with one select.
       *Check is verified live* against the real repo
@@ -55,18 +55,9 @@ hardware/OS this project wasn't developed on (real D-Bus, X11, systemd).
 
 ## Not built yet
 
-- [ ] First-run setup wizard (Y4: Wi-Fi, pair a remote, pick apps on first
-      boot) — currently you'd configure each of these from Settings
-      individually; there's no guided first-run flow.
-- [ ] Phone-typing via QR code (I2) — the on-screen keyboard covers every
-      text field, but there's no "scan a QR code, type on your phone" path
-      yet.
-- [ ] Remote key remapping / learn mode (I3, P2 — lowest priority in the PRD).
-- [ ] Wallpaper slideshow is a local-only UI toggle right now
-      (`settings/WallpaperPage.tsx`) — it doesn't persist to the backend or
-      actually rotate wallpapers on a timer yet. (A starter pack of 8 real
-      photos *is* seeded by `session/install.sh` now — see `wallpapers/`.)
-- [ ] A real Material Symbols icon set (see `docs/DESIGN.md`'s "Known gaps").
+Nothing left from the PRD's own backlog — the remaining five items (first-run
+wizard, phone-typing, remote remapping, wallpaper slideshow persistence, real
+Material Symbols icons) are done; see "Added in 2.1.0" below.
 
 ## Needs the real PC to finish verifying
 
@@ -140,6 +131,51 @@ not working like shutdown, go to desktop, restart and sleep."
   features" bug report. NetworkManager/BlueZ policy is typically more
   permissive by default for a local active user, but hasn't been confirmed
   on this hardware either.
+
+## Added in 2.1.0
+
+The five items that were left in "Not built yet" above:
+
+- **First-run setup wizard (Y4)** — `frontend/src/screens/FirstRunWizard.tsx`.
+  A step machine (Welcome → Wi-Fi → Remote → Apps → Home) shown once, gated on
+  a `firstRunComplete` flag in `settings.json`. Back steps backward, Home
+  skips straight to the real Home screen and marks it done either way.
+  *Verified* end-to-end (`frontend/tests/e2e/first-run.spec.ts`), both the
+  step flow and that it never returns after completion.
+- **Phone-typing via QR code (I2)** — `backend/tv_home/phone_type.py` and
+  `routes/phone_type.py` hand out a short-lived token and serve a tiny
+  standalone page at `/type/<token>` (no `/api` prefix — this is the URL
+  actually opened from the phone); the on-screen keyboard
+  (`OnScreenKeyboard.tsx`) shows a QR code for it and polls the session,
+  submitting the moment the phone taps Done. Token is a 128-bit
+  `secrets.token_urlsafe(16)` — judged adequate auth for a personal LAN
+  device with no login anywhere else in the product. *Verified*
+  (`frontend/tests/e2e/phone-type.spec.ts` drives the phone side via direct
+  HTTP calls, the same way a real phone's page would).
+- **Remote key remapping / learn mode (I3)** — `backend/tv_home/keymap.py` +
+  `routes/remote.py`, Settings → Remote
+  (`frontend/src/settings/RemotePage.tsx`). Each of the 8 actions
+  (up/down/left/right/select/back/home/menu) can be rebound by pressing a key
+  while in "learn mode"; `frontend/src/state/keymap.ts` is consulted by every
+  check in `useKeyNav.ts` (user override first, hardcoded default otherwise).
+  *Verified* (`backend/tests/test_routes.py::test_keymap_remap_persists_and_resets`).
+- **Wallpaper slideshow persistence** — `wallpaper.py` gained
+  `slideshow_settings()`/`set_slideshow()`, persisted to `settings.json`; a
+  new background task (`slideshow.py`, started from `main.py`'s lifespan)
+  checks every 60s and advances the wallpaper on the configured interval.
+  `settings/WallpaperPage.tsx` now reads/writes this instead of holding
+  local-only state. *Verified*
+  (`backend/tests/test_routes.py::test_wallpaper_slideshow_persists`).
+- **A real Material Symbols icon set** — `frontend/src/components/Icons.tsx`
+  now uses actual Apache-2.0 path data (fetched from the
+  `@material-symbols/svg-400` npm package, a mirror of Google's
+  material-design-icons repo) instead of hand-rolled stand-ins, bundled
+  inline so there's no runtime network dependency. `WifiIcon` stays
+  hand-drawn on purpose — it renders 0-4 bars from live signal strength,
+  which no single static glyph can do. Closes the gap noted in
+  `docs/DESIGN.md`'s "Known gaps". *Verified visually* (Playwright
+  screenshots of the top bar, Quick Settings panel, and the Wi-Fi settings
+  page's lock icons at 1920×1080 — no regressions).
 
 ## Open product decisions (from the PRD, not yet re-decided)
 

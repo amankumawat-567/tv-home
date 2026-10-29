@@ -66,11 +66,11 @@ never depends on the network for its own chrome.
   ring of edge pixels via an offscreen canvas, falling back to a stable
   hash-based colour when there's no icon yet). The name only appears under
   the banner when it's focused, keeping unfocused rows visually quiet.
-- **Status icons:** hand-rolled inline SVGs standing in for the PRD's choice
-  of bundled Material Symbols (`components/Icons.tsx`) — same shapes and
-  states (Wi-Fi 0–4 bars + off, Bluetooth off/on/connected, volume
-  off/low/high), swappable for the real icon set later without touching call
-  sites.
+- **Status icons:** real Material Symbols path data, bundled inline
+  (`components/Icons.tsx`) — fetched once from the `@material-symbols/svg-400`
+  npm package (Apache 2.0), no runtime network dependency. `WifiIcon` is the
+  one hand-drawn exception: it renders 0–4 bars from live signal strength,
+  which no static glyph can represent.
 - **Buttons:** pill-shaped; unfocused = surface fill, focused = white fill
   with dark text (see `.focusable.is-focused` for the shared focus treatment
   every interactive element uses).
@@ -106,8 +106,6 @@ never depends on the network for its own chrome.
 
 ## Known gaps vs. the PRD's visual spec
 
-- Material Symbols are stand-in SVGs (see "Components" above), not the actual
-  bundled icon set — same visual language, swap-in-place later.
 - The on-screen wireframe/architecture images embedded in the PRD doc weren't
   pixel-matched against the implementation; the layout here follows the PRD's
   *written* spec (screen map, grid, type scale) rather than a visual diff
