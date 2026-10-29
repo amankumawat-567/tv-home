@@ -13,11 +13,11 @@ No need to clone the repo or install Node.js — download the latest release,
 which ships a prebuilt frontend:
 
 ```sh
+cd "$(mktemp -d)"
 curl -s https://api.github.com/repos/amankumawat-567/tv-home/releases/latest \
   | grep '"browser_download_url.*tar\.gz"' | cut -d '"' -f 4 \
   | xargs curl -sL -o tv-home.tar.gz
-tar xzf tv-home.tar.gz
-cd "$(tar tzf tv-home.tar.gz | head -1 | cut -f1 -d/)"
+tar xzf tv-home.tar.gz && cd tv-home-*/
 ./session/install.sh
 ```
 
@@ -34,11 +34,11 @@ detects the existing install and updates it in place (your apps, wallpapers,
 and settings are untouched):
 
 ```sh
+cd "$(mktemp -d)"
 curl -s https://api.github.com/repos/amankumawat-567/tv-home/releases/latest \
   | grep '"browser_download_url.*tar\.gz"' | cut -d '"' -f 4 \
   | xargs curl -sL -o tv-home.tar.gz
-tar xzf tv-home.tar.gz
-cd "$(tar tzf tv-home.tar.gz | head -1 | cut -f1 -d/)"
+tar xzf tv-home.tar.gz && cd tv-home-*/
 ./session/install.sh
 ```
 
