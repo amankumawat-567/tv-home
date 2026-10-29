@@ -199,6 +199,32 @@ booted into TV Home after reboot.
   before writing the fix; the fix itself still needs a real reinstall to
   verify the prompt now shows up end-to-end.
 
+## Fixed from real-hardware testing (2.1.2)
+
+The 2.1.1 fix above didn't actually fix anything on the reporting machine:
+the autologin prompt still never appeared, and a follow-up `install.sh
+--check` died silently right after printing the "Autologin" header, no
+error message at all.
+
+- **`set -e`/`pipefail` + "grep found nothing" was the real culprit, in two
+  places.** `install.sh` greps each LightDM config file for an existing
+  `autologin-user`/`autologin-session` line; on a stock system most files —
+  starting with `/etc/lightdm/lightdm.conf` itself, always checked first —
+  have no such line, which is the expected, normal case. But
+  `var="$(grep ... | tail -1 | cut ...)"` under `set -euo pipefail` aborts
+  the whole script the instant grep finds nothing, silently. This hit
+  `run_doctor()`'s own scan loop (killing `--check` on its very first
+  iteration, against the stock `lightdm.conf` every machine has) and,
+  separately, `configure_autologin()`'s `others="$(other_autologin_configs)"`
+  call (killing a real install right after the polkit rule step, before the
+  autologin prompt was ever reached) — this was the actual explanation for
+  "the prompt never showed up," not the `/dev/tty` issue 2.1.1 fixed, which
+  was a real bug but never actually got a chance to run. Fixed by treating
+  "no match" as success (`|| true`) at every one of these spots. Reproduced
+  locally against the exact stock `lightdm.conf` content from the real
+  report and confirmed `install.sh --check` now runs to completion; still
+  needs a real reinstall to confirm the autologin prompt itself appears.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

@@ -4,6 +4,33 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.1.2]
+
+Fixes the real bug behind 2.1.1's reported symptom: `install.sh` and
+`install.sh --check` could die completely silently — no error, no prompt,
+just back at the shell — on a perfectly normal, unmodified Xubuntu install.
+
+### Fixed
+
+- **`set -e`/`pipefail` + "grep found nothing" silently killed the script.**
+  `install.sh` scans each LightDM config file for an existing
+  `autologin-user`/`autologin-session` line; on a stock system most of those
+  files (starting with `/etc/lightdm/lightdm.conf` itself, checked first)
+  have no such line at all, which is the normal, expected case — but under
+  `set -euo pipefail`, assigning a `grep | tail | cut` pipeline's output to a
+  variable aborts the entire script the instant grep finds no match, with no
+  error message. This hit two separate spots: `run_doctor()`'s own loop (so
+  `--check` died right after printing the "Autologin" header) and
+  `configure_autologin()`'s call to `other_autologin_configs()` (so a real
+  install died right after installing the polkit rule, before the autologin
+  prompt — the real explanation for "the prompt never came up", not the
+  `/dev/tty` issue 2.1.1 fixed, which was real but never actually reached).
+  Fixed by treating "no match" as the expected non-error outcome (`|| true`)
+  at every one of these spots. Reproduced locally with the exact stock
+  `lightdm.conf` content reported against this bug, confirmed it now runs to
+  completion; still needs a real reinstall to confirm the autologin prompt
+  itself shows up end-to-end.
+
 ## [2.1.1]
 
 Fixes a real install on Xubuntu 26.04 that completed successfully but never

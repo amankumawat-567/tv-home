@@ -112,10 +112,14 @@ configure_autologin() {
   fi
 
   local others
-  others="$(other_autologin_configs)"
+  # The `|| true` matters: other_autologin_configs' last match attempt is
+  # very often "no conflicting file found", which is success here, not an
+  # error — without it, set -e kills the whole install silently right at
+  # this line before the autologin prompt is ever reached.
+  others="$(other_autologin_configs || true)"
   if [ -n "$others" ]; then
     log "Found existing autologin settings that would otherwise conflict:"
-    while IFS= read -r f; do log "  - $f ($(grep -E '^\s*autologin-(user|session)\s*=' "$f" | tr '\n' ' '))"; done <<< "$others"
+    while IFS= read -r f; do log "  - $f ($(grep -E '^\s*autologin-(user|session)\s*=' "$f" | tr '\n' ' ' || true))"; done <<< "$others"
     log "TV Home's config ($LIGHTDM_CONF) loads after these, so it will win — nothing above is modified."
   fi
 
@@ -179,8 +183,11 @@ run_doctor() {
   local f u s found=false
   for f in /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.d/*.conf; do
     [ -e "$f" ] || continue
-    u="$(grep -E '^\s*autologin-user\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2-)"
-    s="$(grep -E '^\s*autologin-session\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2-)"
+    # The `|| true` matters: under set -e -o pipefail, grep finding no match
+    # (status 1) — the normal case for most of these files, e.g. the stock
+    # lightdm.conf — would otherwise kill the whole script right here.
+    u="$(grep -E '^\s*autologin-user\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+    s="$(grep -E '^\s*autologin-session\s*=' "$f" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
     if [ -n "$u$s" ]; then
       found=true
       echo "  $f: user=${u:-<unset>} session=${s:-<unset>}"
@@ -191,7 +198,7 @@ run_doctor() {
   echo "Polkit rule (sleep/restart/shut down with no password): $POLKIT_RULE"
   if [ -e "$POLKIT_RULE" ]; then
     local rule_user
-    rule_user="$(grep -o 'subject.user !== "[^"]*"' "$POLKIT_RULE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"')"
+    rule_user="$(grep -o 'subject.user !== "[^"]*"' "$POLKIT_RULE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' || true)"
     echo "  present, applies to user: ${rule_user:-unknown}"
   else
     echo "  NOT installed — these actions will likely fail or prompt for a password"
