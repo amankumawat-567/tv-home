@@ -231,6 +231,23 @@ error message at all.
   this is the first fully end-to-end real-hardware confirmation of the
   autologin flow since it was first built.
 
+## Fixed from real-hardware testing (2.1.3)
+
+Reported right after confirming the autologin flow works: "Go to desktop"
+drops to a black screen instead of the real XFCE desktop.
+
+- **`to_desktop()` left its own `xfwm4`/`xbindkeys` running.**
+  `tv-home-session.sh` starts both as background jobs before its main loop;
+  `to_desktop()` hands off with `exec startxfce4`, but `exec` only replaces
+  the script's own process — those backgrounded jobs are orphaned, not
+  killed, and keep running. The old `xfwm4` was still holding the
+  window-manager selection on the display, so `startxfce4`'s own window
+  manager could never take over, leaving just the dark `xsetroot` background
+  from TV Home's startup with no panel or desktop icons. Fixed:
+  `to_desktop()` now kills both (captured via `$!` when they're started)
+  before `exec`-ing `startxfce4`. *Unverified on the real PC* — needs an
+  actual "Go to desktop" press to confirm.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

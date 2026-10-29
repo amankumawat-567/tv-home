@@ -99,6 +99,14 @@ never actually caused anything to happen — `tv-home-session.sh`'s foreground
 wait is on the *Chrome window*, not the backend, so the old approach left it
 blocked forever waiting for a window that was never going to exit.
 
+Once that wait returns, the script's `to_desktop()` also kills its own
+backgrounded `xfwm4`/`xbindkeys` before `exec`-ing `startxfce4` — `exec`
+replaces the script's own process but leaves orphaned background jobs
+running, and a leftover `xfwm4` still holding the window-manager selection
+on the display meant `startxfce4`'s own window manager could never take
+over, leaving a black screen (just the `xsetroot` background, no panel, no
+desktop icons) instead of a real desktop.
+
 ## Checking status
 
 ```sh

@@ -27,6 +27,13 @@ to_desktop() {
   rm -f "$SENTINEL"
   systemctl --user stop tv-home-backend.service 2>/dev/null
   pkill -f "\-\-kiosk.*127\.0\.0\.1:8000" 2>/dev/null
+  # xfwm4/xbindkeys below are backgrounded, not children of this exec --
+  # exec replaces this process but leaves them running, orphaned. The old
+  # xfwm4 keeps holding the window-manager selection on this X display, so
+  # startxfce4's own xfwm4 can never take over -- producing a black screen
+  # (just the xsetroot background, no panel, no desktop icons) instead of a
+  # real desktop. Kill them first so the display is clean for the handoff.
+  kill "${XFWM4_PID:-}" "${XBINDKEYS_PID:-}" 2>/dev/null
   exec startxfce4
 }
 
@@ -52,9 +59,11 @@ find_chrome() {
 # (no desktop/compositor effects running at all, unlike the scenario the
 # original constraint was found in).
 xfwm4 --compositor=off --sm-client-disable &
+XFWM4_PID=$!
 xset s off -dpms 2>/dev/null  # our own code owns screen blanking — see backend/tv_home/system/display.py
 xsetroot -solid "#101418" 2>/dev/null
 xbindkeys -f "$APPDIR/xbindkeysrc" &
+XBINDKEYS_PID=$!
 
 CHROME="$(find_chrome)"
 if [ -z "$CHROME" ]; then

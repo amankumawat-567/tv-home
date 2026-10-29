@@ -4,6 +4,25 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.1.3]
+
+Fixes "Go to desktop" dropping to a black screen instead of the real XFCE
+desktop, reported after confirming the autologin flow works end-to-end.
+
+### Fixed
+
+- **"Go to desktop" left a black screen, no panel, no desktop icons.**
+  `tv-home-session.sh` starts `xfwm4 --compositor=off` and `xbindkeys` as
+  background jobs before its main loop. `to_desktop()` hands off to the
+  regular desktop with `exec startxfce4` — but `exec` only replaces the
+  script's own process; those backgrounded jobs are orphaned, not killed,
+  and keep running. The old `xfwm4` was still holding the window-manager
+  selection on the X display, so `startxfce4`'s own window manager could
+  never take over, leaving just the dark `xsetroot` background from TV
+  Home's startup with no panel or desktop icons on top of it. Fixed:
+  `to_desktop()` now kills both before handing off. *Unverified on the real
+  PC* — needs a real "Go to desktop" press to confirm.
+
 ## [2.1.2]
 
 Fixes the real bug behind 2.1.1's reported symptom: `install.sh` and
