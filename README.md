@@ -24,9 +24,21 @@ Or grab the tarball by hand from the
 [releases page](https://github.com/amankumawat-567/tv-home/releases/latest),
 extract it, and run `session/install.sh` from inside.
 
-**Updating** afterwards doesn't need the command line: Settings → About shows
-when a new version is available and installs it with one select (Y6). Or run
-the installer again from a freshly downloaded release.
+## Update (already installed)
+
+Settings → About shows when a new version is available and installs it with
+one select (Y6) — no command line needed. To update from the command line
+instead, re-run the same install commands with a fresh download; `install.sh`
+detects the existing install and updates it in place (your apps, wallpapers,
+and settings are untouched):
+
+```sh
+curl -s https://api.github.com/repos/amankumawat-567/tv-home/releases/latest \
+  | grep '"browser_download_url.*tar\.gz"' | cut -d '"' -f 4 \
+  | xargs curl -sL -o tv-home.tar.gz
+tar xzf tv-home.tar.gz && cd tv-home-*/
+./session/install.sh
+```
 
 ## Repo layout
 
