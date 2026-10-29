@@ -188,3 +188,28 @@ async def test_first_run_wizard_shows_once(client):
     # unlike a plain in-memory flag, which would reset per test anyway.
     res = await client.get("/api/state")
     assert res.json()["firstRunComplete"] is True
+
+
+@pytest.mark.asyncio
+async def test_keymap_remap_persists_and_resets(client):
+    res = await client.get("/api/input/keymap")
+    body = res.json()
+    assert set(body) == {"up", "down", "left", "right", "select", "back", "home", "menu"}
+    assert body["home"] is None  # unconfigured -> frontend falls back to its built-in defaults
+
+    res = await client.post("/api/input/keymap", json={"action": "home", "key": "F1"})
+    assert res.json()["home"] == "F1"
+    # Remapping one action leaves the others alone.
+    assert res.json()["back"] is None
+
+    res = await client.get("/api/input/keymap")
+    assert res.json()["home"] == "F1"
+
+    res = await client.post("/api/input/keymap/reset")
+    assert res.json()["home"] is None
+
+
+@pytest.mark.asyncio
+async def test_keymap_rejects_unknown_action(client):
+    res = await client.post("/api/input/keymap", json={"action": "jump", "key": "J"})
+    assert res.status_code == 400

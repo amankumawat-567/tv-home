@@ -10,6 +10,7 @@ import type {
   UpdateInfo,
   WifiState,
 } from "./types";
+import type { KeyAction, Keymap } from "./state/keymap";
 
 // In dev, Vite proxies /api and /icons to the backend (see vite.config.ts).
 // In production the backend serves the built frontend itself, so relative
@@ -73,6 +74,10 @@ export const api = {
     post<SlideshowSettings>("/api/wallpaper/slideshow", { enabled, minutes }),
 
   completeFirstRun: () => post<{ ok: boolean }>("/api/first-run/complete"),
+
+  getKeymap: () => req<Keymap>("/api/input/keymap"),
+  setKeymapKey: (action: KeyAction, key: string | null) => post<Keymap>("/api/input/keymap", { action, key }),
+  resetKeymap: () => post<Keymap>("/api/input/keymap/reset"),
 
   checkUpdate: () => req<UpdateInfo>("/api/update"),
   applyUpdate: (url?: string | null) => post<{ ok: boolean; message: string }>("/api/update/apply", { url }),

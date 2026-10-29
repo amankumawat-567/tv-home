@@ -65,3 +65,8 @@ class UpdateApplyBody(BaseModel):
 class SlideshowBody(BaseModel):
     enabled: bool
     minutes: Optional[int] = None
+
+
+class KeymapSetBody(BaseModel):
+    action: str
+    key: Optional[str] = None

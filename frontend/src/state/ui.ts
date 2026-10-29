@@ -2,7 +2,7 @@ import { signal } from "@preact/signals";
 import { popScope, pushScope } from "../focus/engine";
 
 export type HomeTab = "home" | "apps";
-export type SettingsPage = "wifi" | "bluetooth" | "sound" | "display" | "datetime" | "wallpaper" | "about" | "power" | null;
+export type SettingsPage = "wifi" | "bluetooth" | "sound" | "display" | "datetime" | "wallpaper" | "about" | "power" | "remote" | null;
 
 export const activeTab = signal<HomeTab>("home");
 export const quickSettingsOpen = signal(false);

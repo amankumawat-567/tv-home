@@ -9,6 +9,7 @@ import { DateTimePage } from "../settings/DateTimePage";
 import { WallpaperPage } from "../settings/WallpaperPage";
 import { AboutPage } from "../settings/AboutPage";
 import { PowerPanel } from "../settings/PowerPanel";
+import { RemotePage } from "../settings/RemotePage";
 
 const CATEGORIES: { id: Exclude<SettingsPage, null>; label: string }[] = [
   { id: "wifi", label: "Wi-Fi" },
@@ -17,6 +18,7 @@ const CATEGORIES: { id: Exclude<SettingsPage, null>; label: string }[] = [
   { id: "display", label: "Display" },
   { id: "datetime", label: "Date and time" },
   { id: "wallpaper", label: "Wallpaper" },
+  { id: "remote", label: "Remote" },
   { id: "about", label: "About" },
   { id: "power", label: "Power" },
 ];
@@ -51,6 +53,7 @@ export function SettingsShell() {
         {page === "display" && <DisplayPage />}
         {page === "datetime" && <DateTimePage />}
         {page === "wallpaper" && <WallpaperPage />}
+        {page === "remote" && <RemotePage />}
         {page === "about" && <AboutPage />}
         {page === "power" && <PowerPanel />}
       </div>

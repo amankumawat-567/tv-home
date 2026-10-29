@@ -2,6 +2,7 @@ import { useEffect } from "preact/hooks";
 import { useKeyNav } from "./focus/useKeyNav";
 import { installNavController } from "./state/nav";
 import { bootstrapData, appState } from "./state/data";
+import { loadKeymap } from "./state/keymap";
 import { activeTab, appStoreOpen, quickSettingsOpen, settingsPage } from "./state/ui";
 import { useScreensaver, Screensaver } from "./components/Screensaver";
 import { TopBar } from "./components/TopBar";
@@ -23,6 +24,7 @@ export function App() {
   useEffect(() => {
     const stopNav = installNavController();
     const stopData = bootstrapData();
+    void loadKeymap();
     return () => {
       stopNav();
       stopData();

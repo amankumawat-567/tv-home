@@ -1,15 +1,21 @@
 import { useEffect, useRef } from "preact/hooks";
 import { move, activate } from "./engine";
 import { emitNav } from "./navEvents";
+import { matches } from "../state/keymap";
 
 const HOLD_MS = 600;
 
 type HoldKey = "select" | "home" | "back";
 
-/** Maps the PRD's key map table to focus-engine moves and semantic nav events.
- * Global keys (Home, volume, recovery) are meant to be grabbed at the X11 level
- * on the real PC (see session/xbindkeysrc) so they work over a running app too;
- * this listener is what drives them inside the TV Home UI itself.
+/** Maps the PRD's key map table to focus-engine moves and semantic nav events
+ * — remappable per action via state/keymap.ts (I3's learn mode, Settings >
+ * Remote): each check below goes through matches(), which uses a learned key
+ * when one's set and falls back to the built-in defaults otherwise, so
+ * remapping one button never affects the others.
+ *
+ * Global keys (Home, volume, recovery) are meant to be grabbed at the X11
+ * level on the real PC (see session/xbindkeysrc) so they work over a running
+ * app too; this listener is what drives them inside the TV Home UI itself.
  *
  * Select and Home distinguish a tap from a 600ms hold (tile options / quick
  * settings vs. select / go home). Back normally just fires on tap ("go up one
@@ -22,10 +28,7 @@ export function useKeyNav() {
   const fired = useRef<Record<HoldKey, boolean>>({ select: false, home: false, back: false });
 
   useEffect(() => {
-    const isHome = (k: string) => k === "Home" || k === "F12" || k === "XF86HomePage";
-    const isBack = (k: string) => k === "Escape" || k === "Backspace" || k === "XF86Back" || k === "BrowserBack";
-    const isSelect = (k: string) => k === "Enter" || k === " ";
-    const isMenu = (k: string) => k === "ContextMenu" || k.toLowerCase() === "m";
+    const isMenu = (k: string) => matches("menu", k) || k.toLowerCase() === "m"; // "m" stays as a dev-keyboard convenience, not a remap target
 
     const startHold = (key: HoldKey, onHold: () => void) => {
       if (fired.current[key]) return;
@@ -47,25 +50,29 @@ export function useKeyNav() {
       const target = e.target as HTMLElement | null;
       const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
 
+      if (matches("up", e.key)) {
+        e.preventDefault();
+        move("up");
+        return;
+      }
+      if (matches("down", e.key)) {
+        e.preventDefault();
+        move("down");
+        return;
+      }
+      if (matches("left", e.key)) {
+        if (typing) return;
+        e.preventDefault();
+        move("left");
+        return;
+      }
+      if (matches("right", e.key)) {
+        if (typing) return;
+        e.preventDefault();
+        move("right");
+        return;
+      }
       switch (e.key) {
-        case "ArrowUp":
-          e.preventDefault();
-          move("up");
-          return;
-        case "ArrowDown":
-          e.preventDefault();
-          move("down");
-          return;
-        case "ArrowLeft":
-          if (typing) return;
-          e.preventDefault();
-          move("left");
-          return;
-        case "ArrowRight":
-          if (typing) return;
-          e.preventDefault();
-          move("right");
-          return;
         case "AudioVolumeUp":
         case "XF86AudioRaiseVolume":
           emitNav("volumeUp");
@@ -80,17 +87,17 @@ export function useKeyNav() {
           return;
       }
 
-      if (isSelect(e.key) && !typing) {
+      if (matches("select", e.key) && !typing) {
         e.preventDefault();
         startHold("select", () => emitNav("holdSelect"));
         return;
       }
-      if (isHome(e.key)) {
+      if (matches("home", e.key)) {
         e.preventDefault();
         startHold("home", () => emitNav("holdHome"));
         return;
       }
-      if (isBack(e.key) && !typing) {
+      if (matches("back", e.key) && !typing) {
         e.preventDefault();
         startHold("back", () => emitNav("holdBack"));
         return;
@@ -107,9 +114,9 @@ export function useKeyNav() {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (isSelect(e.key)) endHold("select", activate);
-      else if (isHome(e.key)) endHold("home", () => emitNav("home"));
-      else if (isBack(e.key)) endHold("back", () => emitNav("back"));
+      if (matches("select", e.key)) endHold("select", activate);
+      else if (matches("home", e.key)) endHold("home", () => emitNav("home"));
+      else if (matches("back", e.key)) endHold("back", () => emitNav("back"));
     };
 
     window.addEventListener("keydown", onKeyDown);
