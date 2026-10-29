@@ -47,11 +47,14 @@ test.describe("Home screen", () => {
     // Enter launches the focused app. Whether this succeeds depends on the
     // environment: some CI runners have a real Chrome on PATH (so it
     // "succeeds" even with nowhere to show a window) and this dev sandbox
-    // doesn't (see backend/tv_home/chrome.py) — either way the round-trip
-    // ends in one of these three states, so accept any of them rather than
-    // asserting a specific outcome this test doesn't actually care about.
+    // doesn't (see backend/tv_home/chrome.py). On success, the running-app
+    // placeholder and the launch screen are both visible at once for up to
+    // 15s by design (state/nav.ts's launchApp doesn't clear `launching`
+    // until then, since mock mode has no real window to signal "appeared"),
+    // so .first() avoids a strict-mode violation when the selector list
+    // matches more than one of the three possible outcomes.
     await page.keyboard.press("Enter");
-    await expect(page.locator(".toast, .running-app-placeholder, .launch-screen")).toBeVisible();
+    await expect(page.locator(".toast, .running-app-placeholder, .launch-screen").first()).toBeVisible();
 
     // Home always returns to Home.
     await page.keyboard.press("Home");
