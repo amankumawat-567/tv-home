@@ -16,7 +16,8 @@ which ships a prebuilt frontend:
 curl -s https://api.github.com/repos/amankumawat-567/tv-home/releases/latest \
   | grep '"browser_download_url.*tar\.gz"' | cut -d '"' -f 4 \
   | xargs curl -sL -o tv-home.tar.gz
-tar xzf tv-home.tar.gz && cd tv-home-*/
+tar xzf tv-home.tar.gz
+cd "$(tar tzf tv-home.tar.gz | head -1 | cut -f1 -d/)"
 ./session/install.sh
 ```
 
@@ -36,7 +37,8 @@ and settings are untouched):
 curl -s https://api.github.com/repos/amankumawat-567/tv-home/releases/latest \
   | grep '"browser_download_url.*tar\.gz"' | cut -d '"' -f 4 \
   | xargs curl -sL -o tv-home.tar.gz
-tar xzf tv-home.tar.gz && cd tv-home-*/
+tar xzf tv-home.tar.gz
+cd "$(tar tzf tv-home.tar.gz | head -1 | cut -f1 -d/)"
 ./session/install.sh
 ```
 
