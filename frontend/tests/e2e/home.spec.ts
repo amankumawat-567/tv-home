@@ -9,6 +9,10 @@ test.describe("Home screen", () => {
   // starts with none.
   test.beforeAll(async () => {
     const api = await request.newContext();
+    // Skip the first-run wizard (see first-run.spec.ts for that flow) — a
+    // fresh backend starts with it incomplete, which would otherwise
+    // intercept every test below before Home ever renders.
+    await api.post(`${BACKEND_URL}/api/first-run/complete`);
     for (const id of ["netflix", "youtube"]) {
       await api.post(`${BACKEND_URL}/api/apps`, { data: { id, name: id, url: "" } });
     }

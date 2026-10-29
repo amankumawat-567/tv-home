@@ -5,7 +5,7 @@ import { appState, pushToast, refreshState } from "../state/data";
 import { OnScreenKeyboard } from "../components/OnScreenKeyboard";
 import type { CatalogEntry } from "../types";
 
-function CatalogTile({ entry }: { entry: CatalogEntry }) {
+export function CatalogTile({ entry }: { entry: CatalogEntry }) {
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
     setBusy(true);

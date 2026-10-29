@@ -117,6 +117,7 @@ export interface AppState {
   wallpaper: boolean;
   apps: AppTile[];
   catalog: CatalogEntry[];
+  firstRunComplete: boolean;
   status: StatusSnapshot;
 }
 

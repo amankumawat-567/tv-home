@@ -16,7 +16,7 @@ async def test_state_shape(client):
     res = await client.get("/api/state")
     assert res.status_code == 200
     body = res.json()
-    assert set(body) == {"user", "wallpaper", "apps", "catalog", "status"}
+    assert set(body) == {"user", "wallpaper", "apps", "catalog", "firstRunComplete", "status"}
     assert set(body["status"]) == {"wifi", "bluetooth", "volume", "muted", "clockWrong"}
 
 
@@ -174,3 +174,17 @@ async def test_wallpaper_slideshow_persists(client):
     # Toggling off keeps the chosen interval.
     res = await client.post("/api/wallpaper/slideshow", json={"enabled": False})
     assert res.json() == {"enabled": False, "minutes": 30}
+
+
+@pytest.mark.asyncio
+async def test_first_run_wizard_shows_once(client):
+    res = await client.get("/api/state")
+    assert res.json()["firstRunComplete"] is False
+
+    res = await client.post("/api/first-run/complete")
+    assert res.json()["ok"]
+
+    # Persists (settings.json), so it doesn't come back on the next request —
+    # unlike a plain in-memory flag, which would reset per test anyway.
+    res = await client.get("/api/state")
+    assert res.json()["firstRunComplete"] is True

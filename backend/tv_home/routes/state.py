@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from .. import apps, chrome, clock, events, info
+from .. import apps, chrome, clock, events, first_run, info
 from ..models import InstallBody, MoveBody
 from ..providers import bluetooth_provider, display_provider, sound_provider, wifi_provider
 from ..wallpaper import current_wallpaper
@@ -36,6 +36,7 @@ async def build_state() -> dict:
         "wallpaper": current_wallpaper() is not None,
         "apps": apps.apps_view(),
         "catalog": apps.catalog_view(),
+        "firstRunComplete": first_run.is_complete(),
         "status": {
             "wifi": _wifi_bars(wifi_state),
             "bluetooth": _bluetooth_status(bt_state),
@@ -68,6 +69,13 @@ async def ws_events(websocket: WebSocket):
         pass
     finally:
         events.bus.unsubscribe(queue)
+
+
+@router.post("/api/first-run/complete")
+async def complete_first_run():
+    first_run.mark_complete()
+    await broadcast_state()
+    return {"ok": True}
 
 
 @router.post("/api/home")

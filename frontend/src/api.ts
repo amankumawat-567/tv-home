@@ -72,6 +72,8 @@ export const api = {
   setWallpaperSlideshow: (enabled: boolean, minutes?: number) =>
     post<SlideshowSettings>("/api/wallpaper/slideshow", { enabled, minutes }),
 
+  completeFirstRun: () => post<{ ok: boolean }>("/api/first-run/complete"),
+
   checkUpdate: () => req<UpdateInfo>("/api/update"),
   applyUpdate: (url?: string | null) => post<{ ok: boolean; message: string }>("/api/update/apply", { url }),
 };

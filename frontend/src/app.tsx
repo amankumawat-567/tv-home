@@ -14,6 +14,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { LaunchScreen } from "./components/LaunchScreen";
 import { ToastStack } from "./components/Toast";
 import { RunningAppPlaceholder } from "./components/RunningAppPlaceholder";
+import { FirstRunWizard } from "./screens/FirstRunWizard";
 
 export function App() {
   useKeyNav();
@@ -29,6 +30,16 @@ export function App() {
   }, []);
 
   const state = appState.value;
+
+  if (state && !state.firstRunComplete) {
+    return (
+      <div className="app-shell">
+        <FirstRunWizard />
+        <ConfirmDialog />
+        <ToastStack />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
