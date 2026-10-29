@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config, slideshow
 from .providers import display_provider
-from .routes import bluetooth, display, misc, power, remote, sound, state, update, wifi
+from .routes import bluetooth, display, misc, phone_type, power, remote, sound, state, update, wifi
 from .routes.state import build_state
 
 
@@ -33,6 +33,7 @@ for router in (
     display.router,
     power.router,
     remote.router,
+    phone_type.router,
     update.router,
     misc.router,
 ):

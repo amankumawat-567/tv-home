@@ -12,6 +12,7 @@ export default defineConfig({
       "/api": { target: BACKEND, changeOrigin: true, ws: true },
       "/icons": { target: BACKEND, changeOrigin: true },
       "/wallpaper": { target: BACKEND, changeOrigin: true },
+      "/type": { target: BACKEND, changeOrigin: true },
     },
   },
 });

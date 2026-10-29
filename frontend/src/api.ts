@@ -79,6 +79,10 @@ export const api = {
   setKeymapKey: (action: KeyAction, key: string | null) => post<Keymap>("/api/input/keymap", { action, key }),
   resetKeymap: () => post<Keymap>("/api/input/keymap/reset"),
 
+  startPhoneType: () => post<{ token: string; url: string }>("/api/type/start"),
+  pollPhoneType: (token: string) => req<{ value: string; done: boolean }>(`/api/type/${token}`),
+  endPhoneType: (token: string) => post<{ ok: boolean }>(`/api/type/${token}/end`),
+
   checkUpdate: () => req<UpdateInfo>("/api/update"),
   applyUpdate: (url?: string | null) => post<{ ok: boolean; message: string }>("/api/update/apply", { url }),
 };

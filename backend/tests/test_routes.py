@@ -213,3 +213,43 @@ async def test_keymap_remap_persists_and_resets(client):
 async def test_keymap_rejects_unknown_action(client):
     res = await client.post("/api/input/keymap", json={"action": "jump", "key": "J"})
     assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_phone_typing_round_trip(client):
+    res = await client.post("/api/type/start")
+    body = res.json()
+    token = body["token"]
+    assert token in body["url"]
+    assert body["url"].startswith("http://")
+
+    # TV side polls this — starts empty, not done.
+    res = await client.get(f"/api/type/{token}")
+    assert res.json() == {"value": "", "done": False}
+
+    # Phone side posts as the user types (no /api prefix — this is the path
+    # opened directly from the QR code, served to the phone's own browser).
+    res = await client.post(f"/type/{token}", json={"value": "hello"})
+    assert res.json()["ok"]
+
+    res = await client.get(f"/api/type/{token}")
+    assert res.json() == {"value": "hello", "done": False}
+
+    # Phone taps "Done".
+    res = await client.post(f"/type/{token}/done")
+    assert res.json()["ok"]
+    res = await client.get(f"/api/type/{token}")
+    assert res.json() == {"value": "hello", "done": True}
+
+    # The TV-facing page itself renders (what the QR code's URL points at).
+    res = await client.get(f"/type/{token}")
+    assert res.status_code == 200
+    assert token in res.text
+
+
+@pytest.mark.asyncio
+async def test_phone_typing_unknown_token_is_a_clean_404(client):
+    assert (await client.get("/api/type/does-not-exist")).status_code == 404
+    assert (await client.post("/type/does-not-exist", json={"value": "x"})).status_code == 404
+    assert (await client.post("/type/does-not-exist/done")).status_code == 404
+    assert (await client.get("/type/does-not-exist")).status_code == 404

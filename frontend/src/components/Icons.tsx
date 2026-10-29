@@ -148,3 +148,13 @@ export function PowerIcon(props: IconProps) {
 export function CheckIcon(props: IconProps) {
   return base(<path d="M4 12l5 5 11-11" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />, props);
 }
+
+export function PhoneIcon(props: IconProps) {
+  return base(
+    <>
+      <rect x={7} y={2} width={10} height={20} rx={2} stroke="currentColor" strokeWidth={1.6} fill="none" />
+      <line x1={10} y1={18} x2={14} y2={18} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    </>,
+    props,
+  );
+}
