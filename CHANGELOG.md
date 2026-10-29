@@ -4,6 +4,25 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.0.3]
+
+Fixes "power features are not working like shutdown, go to desktop, restart
+and sleep," reported against a detailed setup/boot requirements spec. See
+`docs/TODO.md`'s "Fixed from real-hardware testing (2.0.3)" for the detail.
+
+### Fixed
+
+- **Go to desktop never worked**: it killed the backend process, but
+  `tv-home-session.sh`'s loop is blocked waiting on the Chrome *window*, not
+  the backend — so nothing ever caused it to proceed to the desktop handoff.
+  Now closes TV Home's own shell window directly (`chrome.close_shell()`).
+- **Sleep/restart/shut down likely failed on missing authorization**: these
+  call logind over D-Bus, which requires polkit to explicitly allow the
+  action without a password — nothing previously granted that. Added a
+  polkit rule (`session/polkit/46-tv-home.rules.template`), installed with
+  the real username substituted in on every install/update. Failures now
+  report "Not allowed" specifically when authorization is the cause.
+
 ## [2.0.2]
 
 Fixes from a bug report filed after actually installing on the target

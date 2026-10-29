@@ -1,0 +1,27 @@
+// Lets the TV Home user sleep/restart/shut down from the UI with no password
+// prompt — without this, logind's own default policy requires interactive
+// authentication for these actions unless polkit can already tell the
+// calling session is "active" on a local seat, which a custom xsession
+// launched through a systemd --user service isn't guaranteed to satisfy in
+// every setup. Installed (with __TV_HOME_USER__ substituted for the real
+// username) as /etc/polkit-1/rules.d/46-tv-home.rules by session/install.sh.
+//
+// Scoped to one named user, not "any active user" — on a shared machine this
+// rule should only ever apply to the account TV Home actually runs as.
+polkit.addRule(function(action, subject) {
+    if (subject.user !== "__TV_HOME_USER__") {
+        return null; // not our user — defer to the system's normal policy
+    }
+    var actions = [
+        "org.freedesktop.login1.power-off",
+        "org.freedesktop.login1.power-off-multiple-sessions",
+        "org.freedesktop.login1.reboot",
+        "org.freedesktop.login1.reboot-multiple-sessions",
+        "org.freedesktop.login1.suspend",
+        "org.freedesktop.login1.suspend-multiple-sessions",
+    ];
+    if (actions.indexOf(action.id) !== -1) {
+        return polkit.Result.YES;
+    }
+    return null;
+});

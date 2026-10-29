@@ -91,10 +91,11 @@ async def test_display_set_mode_returns_token_and_confirm_accepts_it(client):
 
 @pytest.mark.asyncio
 async def test_power_mock_never_touches_the_real_host(client):
-    res = await client.post("/api/power", json={"action": "poweroff"})
-    body = res.json()
-    assert body["ok"]
-    assert "(mock)" in body["message"]
+    for action in ("poweroff", "restart", "sleep", "desktop"):
+        res = await client.post("/api/power", json={"action": action})
+        body = res.json()
+        assert body["ok"], f"{action} should succeed in mock mode"
+        assert "(mock)" in body["message"]
 
 
 @pytest.mark.asyncio

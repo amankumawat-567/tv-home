@@ -14,6 +14,7 @@ INSTALL_DIR="$HOME/.local/share/tv-home"
 # is the 2.0.1 name — remove both so an upgrade-then-uninstall cleans up
 # fully regardless of which version wrote it.
 LIGHTDM_CONFS=(/etc/lightdm/lightdm.conf.d/90-tv-home.conf /etc/lightdm/lightdm.conf.d/50-tv-home.conf)
+POLKIT_RULE=/etc/polkit-1/rules.d/46-tv-home.rules
 PURGE=false
 [ "${1:-}" = "--purge" ] && PURGE=true
 
@@ -47,6 +48,11 @@ for LIGHTDM_CONF in "${LIGHTDM_CONFS[@]}"; do
     log "Removed autologin ($LIGHTDM_CONF) — the login screen will ask again next boot"
   fi
 done
+
+if [ -e "$POLKIT_RULE" ]; then
+  restore_or_remove "$POLKIT_RULE"
+  sudo systemctl try-restart polkit 2>/dev/null || true
+fi
 
 if $PURGE; then
   log "Removing $INSTALL_DIR and $CONFIG_DIR (--purge)"

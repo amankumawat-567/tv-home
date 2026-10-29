@@ -108,6 +108,39 @@ A bug report from actually installing on the target Xubuntu 26.04 PC:
   the systemd service's status, and whether the backend answers on
   `127.0.0.1:8000`, without installing or changing anything.
 
+## Fixed from real-hardware testing (2.0.3)
+
+A follow-up setup/boot spec and a specific bug report: "power features are
+not working like shutdown, go to desktop, restart and sleep."
+
+- **"Go to desktop" could never have worked.** It killed the *backend*
+  process and left a sentinel file, expecting `tv-home-session.sh`'s loop to
+  notice and hand off to the desktop — but that loop is blocked in a
+  foreground wait on the *Chrome shell window*, not the backend, so killing
+  the backend alone never caused it to proceed. Fixed: `chrome.close_shell()`
+  closes TV Home's own window specifically (go_home() deliberately excludes
+  it, since the Home key must *not* close the shell) — found by re-reading
+  the two functions side by side, confirmed via a unit test that they're
+  distinct, and the PID-selection logic exercises the same `/proc` code path
+  `go_home()` already uses (Linux-only; degrades to a no-op on this sandbox).
+- **Sleep/restart/shut down likely failed on authorization, not code.** These
+  call logind over D-Bus with `interactive=False`; without a polkit rule
+  explicitly granting the TV Home user passwordless access, logind's default
+  policy requires authentication that nothing in a kiosk session can
+  provide, and the call fails immediately. Added
+  `session/polkit/46-tv-home.rules.template`, installed (username
+  substituted in) by `install.sh` on every install/update. `power.py` also
+  now surfaces "Not allowed — check the polkit rule…" specifically for an
+  auth failure instead of a generic error, so this is diagnosable from the
+  UI alone. *Unverified beyond JS-syntax-checking the rule* — needs the real
+  PC; `install.sh --check` reports whether the rule file is present.
+- **Not yet addressed from the same spec**: point 20's broader ask (Wi-Fi/
+  Bluetooth/display *also* needing no-password polkit coverage) — only
+  logind's power actions got a rule here, scoped to the specific "power
+  features" bug report. NetworkManager/BlueZ policy is typically more
+  permissive by default for a local active user, but hasn't been confirmed
+  on this hardware either.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

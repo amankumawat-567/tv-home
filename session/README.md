@@ -41,6 +41,7 @@ sets up a backend virtualenv there, and installs:
 - `~/.config/tv-home/xbindkeysrc` — global hotkeys (Home, volume, recovery)
 - `~/.local/bin/tv-home-recover` — Ctrl+Alt+D's recovery command
 - `~/.config/systemd/user/tv-home-backend.service` — the backend process
+- `/etc/polkit-1/rules.d/46-tv-home.rules` — see "Power actions" below
 
 Any existing file at those system paths is backed up to `<path>.tv-home-orig`
 before being overwritten (once).
@@ -74,6 +75,27 @@ screen), or the machine has no LightDM at all. Say no, or skip it, and you
 can still select "TV Home" by hand from the session chooser at login — or
 re-run `install.sh` later to be asked again.
 
+## Power actions (sleep/restart/shut down/go to desktop)
+
+Settings → Power calls logind over D-Bus (`backend/tv_home/system/power.py`)
+for sleep/restart/shut down. Logind's default policy requires interactive
+authentication for these unless it can tell the calling session is "active"
+on a local seat — not something a custom xsession run through a
+`systemd --user` service reliably satisfies in every setup — so
+`install.sh` installs a polkit rule
+(`polkit/46-tv-home.rules.template` → `/etc/polkit-1/rules.d/46-tv-home.rules`,
+with the real username substituted in) granting the installing user
+passwordless use of logind's power-off/reboot/suspend actions specifically.
+It's applied on every install/update, not asked about, since — unlike
+autologin — it only ever affects the one account TV Home runs as.
+
+"Go to desktop" doesn't go through logind at all: it writes the same
+sentinel file as before, but now also closes TV Home's own shell window
+(`chrome.close_shell()`) rather than just killing the backend process, which
+never actually caused anything to happen — `tv-home-session.sh`'s foreground
+wait is on the *Chrome window*, not the backend, so the old approach left it
+blocked forever waiting for a window that was never going to exit.
+
 ## Checking status
 
 ```sh
@@ -83,9 +105,9 @@ re-run `install.sh` later to be asked again.
 Prints the installed path and version, whether the xsession files are in
 place, every `autologin-user`/`autologin-session` line found across
 `/etc/lightdm/lightdm.conf` and `lightdm.conf.d/*.conf` (in the order
-LightDM would apply them), the systemd `--user` service's status, and
-whether the backend answers on `http://127.0.0.1:8000`. Doesn't install or
-change anything.
+LightDM would apply them), whether the polkit rule is installed and for
+which user, the systemd `--user` service's status, and whether the backend
+answers on `http://127.0.0.1:8000`. Doesn't install or change anything.
 
 ## Uninstall
 
@@ -105,6 +127,11 @@ Removes the autologin config too, if install.sh wrote one.
   (`tv-home-recover.sh` doesn't depend on it).
 - **Home, volume keys** work while a streaming app has focus (grabbed globally
   by `xbindkeys`, not by the frontend's own JS key handling).
+- **Sleep, restart, shut down and Go to desktop** from Settings → Power with
+  no password prompt (needs `/etc/polkit-1/rules.d/46-tv-home.rules` —
+  `install.sh --check` confirms it's present). If one of these reports
+  "Not allowed" specifically, the polkit rule is missing or polkit didn't
+  pick it up (`sudo systemctl restart polkit` and retry).
 - **If you ever see a black Chrome window**: this is the failure mode that
   originally came up with the compositor off, inside a full XFCE desktop.
   `tv-home-session.sh` runs `xfwm4 --compositor=off` because this dedicated

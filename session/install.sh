@@ -35,6 +35,7 @@ set -euo pipefail
 # Xubuntu autologin snippet seen in the wild) so TV Home's autologin wins
 # over a pre-existing one without having to touch that other file at all.
 LIGHTDM_CONF=/etc/lightdm/lightdm.conf.d/90-tv-home.conf
+POLKIT_RULE=/etc/polkit-1/rules.d/46-tv-home.rules
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$HOME/.local/share/tv-home"
@@ -118,6 +119,26 @@ configure_autologin() {
   log "Autologin enabled for $autologin_user — reboot to try it (remove $LIGHTDM_CONF to undo, or run session/uninstall.sh)"
 }
 
+install_polkit_rule() {
+  # Sleep/restart/shut down from the UI need this — without it, logind
+  # requires interactive authentication for these actions (see
+  # backend/tv_home/system/power.py's docstring), which nothing in a kiosk
+  # session can answer, so the request just fails. Unlike autologin, this
+  # only grants permissions to the current user's own account, so it's
+  # applied unconditionally rather than asked about.
+  if [ ! -d /etc/polkit-1 ]; then
+    log "polkit not found — sleep/restart/shut down may prompt for a password or fail"
+    return
+  fi
+  backup "$POLKIT_RULE"
+  sudo mkdir -p "$(dirname "$POLKIT_RULE")"
+  sed "s/__TV_HOME_USER__/$USER/" "$SCRIPT_DIR/polkit/46-tv-home.rules.template" | sudo tee "$POLKIT_RULE" >/dev/null
+  # polkitd picks up rules.d changes via inotify on modern systems; restarting
+  # it is a harmless belt-and-suspenders in case that doesn't fire.
+  sudo systemctl try-restart polkit 2>/dev/null || true
+  log "Installed the polkit rule for $USER ($POLKIT_RULE)"
+}
+
 run_doctor() {
   echo "TV Home — status"
   echo
@@ -152,6 +173,15 @@ run_doctor() {
     fi
   done
   $found || echo "  none configured — pick \"TV Home\" manually at the login screen"
+  echo
+  echo "Polkit rule (sleep/restart/shut down with no password): $POLKIT_RULE"
+  if [ -e "$POLKIT_RULE" ]; then
+    local rule_user
+    rule_user="$(grep -o 'subject.user !== "[^"]*"' "$POLKIT_RULE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"')"
+    echo "  present, applies to user: ${rule_user:-unknown}"
+  else
+    echo "  NOT installed — these actions will likely fail or prompt for a password"
+  fi
   echo
   echo "Backend service (systemd --user):"
   systemctl --user status tv-home-backend.service --no-pager -l 2>&1 | head -6 | sed 's/^/  /' || echo "  not found"
@@ -230,6 +260,9 @@ log "Installing the systemd user unit"
 mkdir -p "$HOME/.config/systemd/user"
 install -m 644 "$SCRIPT_DIR/systemd/tv-home-backend.service" "$HOME/.config/systemd/user/tv-home-backend.service"
 systemctl --user daemon-reload
+
+log "Installing the polkit rule for passwordless sleep/restart/shut down"
+install_polkit_rule
 
 if systemctl --user is-active --quiet tv-home-backend.service 2>/dev/null; then
   log "Restarting the backend with the new version"

@@ -47,9 +47,12 @@ def launch(app_id: str) -> tuple[bool, str]:
     return True, f"Opening {app['name']}"
 
 
-def go_home() -> tuple[bool, str]:
-    """Close every kiosk Chrome window that isn't this backend's own shell window."""
-    closed = 0
+def _kiosk_chrome_pids(*, want_shell: bool) -> list[int]:
+    """PIDs of kiosk Chrome processes, split by whether they're this backend's
+    own shell window (user-data-dir == PROFILE) or a launched app's. Chrome
+    rewrites its own process title, so matching by argv alone is unreliable —
+    /proc/<pid>/exe identifies the real binary regardless."""
+    pids = []
     for pid in os.listdir("/proc") if os.path.isdir("/proc") else []:
         if not pid.isdigit() or int(pid) == os.getpid():
             continue
@@ -60,11 +63,39 @@ def go_home() -> tuple[bool, str]:
             continue
         if exe not in ("chrome", "chromium", "chromium-browser"):
             continue
-        if "--kiosk" not in cmd or "--type=" in cmd or str(PROFILE) in cmd:
+        if "--kiosk" not in cmd or "--type=" in cmd:
             continue
+        is_shell = str(PROFILE) in cmd
+        if is_shell == want_shell:
+            pids.append(int(pid))
+    return pids
+
+
+def go_home() -> tuple[bool, str]:
+    """Close every kiosk Chrome window that isn't this backend's own shell window."""
+    closed = 0
+    for pid in _kiosk_chrome_pids(want_shell=False):
         try:
-            os.kill(int(pid), signal.SIGTERM)
+            os.kill(pid, signal.SIGTERM)
             closed += 1
         except Exception:
             pass
     return True, "" if closed else "No app is open."
+
+
+def close_shell() -> bool:
+    """Close TV Home's own shell window — the one go_home() deliberately
+    leaves alone. Used by Power > Go to desktop so tv-home-session.sh's
+    foreground `chrome ... "$BACKEND_URL/"` returns and its sentinel check
+    (session/tv-home-session.sh) can hand off to the regular desktop; without
+    this, killing only the backend left the shell window running with
+    nothing to talk to, and the session script stayed blocked waiting for a
+    window that was never going to exit on its own."""
+    closed = False
+    for pid in _kiosk_chrome_pids(want_shell=True):
+        try:
+            os.kill(pid, signal.SIGTERM)
+            closed = True
+        except Exception:
+            pass
+    return closed
