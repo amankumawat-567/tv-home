@@ -5,6 +5,7 @@ import type {
   DisplayState,
   AboutInfo,
   ServerEvent,
+  SlideshowSettings,
   SoundState,
   UpdateInfo,
   WifiState,
@@ -67,6 +68,9 @@ export const api = {
     post<{ ok: boolean; message: string }>("/api/power", { action }),
 
   wallpaperNext: () => post<{ ok: boolean }>("/api/wallpaper"),
+  wallpaperSlideshow: () => req<SlideshowSettings>("/api/wallpaper/slideshow"),
+  setWallpaperSlideshow: (enabled: boolean, minutes?: number) =>
+    post<SlideshowSettings>("/api/wallpaper/slideshow", { enabled, minutes }),
 
   checkUpdate: () => req<UpdateInfo>("/api/update"),
   applyUpdate: (url?: string | null) => post<{ ok: boolean; message: string }>("/api/update/apply", { url }),

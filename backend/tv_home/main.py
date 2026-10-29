@@ -1,12 +1,14 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from . import config
+from . import config, slideshow
 from .providers import display_provider
 from .routes import bluetooth, display, misc, power, sound, state, update, wifi
+from .routes.state import build_state
 
 
 @asynccontextmanager
@@ -16,7 +18,9 @@ async def lifespan(_app: FastAPI):
     # takes effect immediately on boot, not only after the next Settings >
     # Display visit or app launch/close (see display_provider.restore()).
     await display_provider.restore()
+    task = asyncio.create_task(slideshow.run(build_state))
     yield
+    task.cancel()
 
 
 app = FastAPI(title="TV Home", version=config.VERSION, lifespan=lifespan)

@@ -60,3 +60,8 @@ class PowerBody(BaseModel):
 
 class UpdateApplyBody(BaseModel):
     url: Optional[str] = None
+
+
+class SlideshowBody(BaseModel):
+    enabled: bool
+    minutes: Optional[int] = None

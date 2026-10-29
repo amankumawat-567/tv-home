@@ -11,16 +11,16 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from .config import APPS_FILE, CATALOG, ICONS
+from . import config
 from .state_store import read_json, write_json
 
 
 def load_apps() -> list[dict]:
-    return read_json(APPS_FILE, [])
+    return read_json(config.APPS_FILE, [])
 
 
 def save_apps(apps: list[dict]) -> None:
-    write_json(APPS_FILE, apps)
+    write_json(config.APPS_FILE, apps)
 
 
 def norm_url(url: str) -> str:
@@ -78,7 +78,7 @@ def install(name: str, url: str, ua: Optional[str] = None, cid: Optional[str] = 
     app_id, n = base, 2
     while app_id in used:
         app_id, n = f"{base}-{n}", n + 1
-    fetch_icon(domain_of(url), ICONS / f"{app_id}.png")
+    fetch_icon(domain_of(url), config.ICONS / f"{app_id}.png")
     app = {"id": app_id, "name": name, "url": norm_url(url)}
     if ua:
         app["ua"] = ua
@@ -93,7 +93,7 @@ def remove(app_id: str) -> tuple[bool, str]:
     if not app:
         return False, "That app isn't on your home screen."
     save_apps([a for a in apps if a["id"] != app_id])
-    (ICONS / f"{app_id}.png").unlink(missing_ok=True)
+    (config.ICONS / f"{app_id}.png").unlink(missing_ok=True)
     return True, f"{app['name']} removed from your home screen."
 
 
@@ -109,7 +109,7 @@ def move(app_id: str, direction: str) -> tuple[bool, str]:
 
 
 def install_from_catalog(app_id: str) -> tuple[bool, str]:
-    item = next((c for c in CATALOG if c["id"] == app_id), None)
+    item = next((c for c in config.CATALOG if c["id"] == app_id), None)
     if not item:
         return False, "That app isn't in the catalog."
     return install(item["name"], item["url"], item.get("ua"), item["id"])
@@ -125,12 +125,12 @@ def catalog_view() -> list[dict]:
             "domain": domain_of(c["url"]),
             "installed": norm_url(c["url"]) in installed,
         }
-        for c in CATALOG
+        for c in config.CATALOG
     ]
 
 
 def apps_view() -> list[dict]:
     return [
-        {"id": a["id"], "name": a["name"], "domain": domain_of(a["url"]), "icon": (ICONS / f"{a['id']}.png").exists()}
+        {"id": a["id"], "name": a["name"], "domain": domain_of(a["url"]), "icon": (config.ICONS / f"{a['id']}.png").exists()}
         for a in load_apps()
     ]

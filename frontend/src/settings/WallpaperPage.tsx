@@ -1,10 +1,12 @@
-import { useState } from "preact/hooks";
 import { api } from "../api";
 import { refreshState } from "../state/data";
+import { usePolling } from "../utils/usePolling";
 import { SettingsRow } from "../components/SettingsRow";
 
+const INTERVALS = [5, 15, 30, 60];
+
 export function WallpaperPage() {
-  const [slideshow, setSlideshow] = useState(false);
+  const { data, refresh } = usePolling(() => api.wallpaperSlideshow(), 10000);
 
   return (
     <div className="settings-page">
@@ -17,7 +19,31 @@ export function WallpaperPage() {
           await refreshState();
         }}
       />
-      <SettingsRow label="Slideshow" value={slideshow ? "On" : "Off"} onSelect={() => setSlideshow((s) => !s)} />
+      <SettingsRow
+        label="Slideshow"
+        value={data ? (data.enabled ? "On" : "Off") : "…"}
+        onSelect={async () => {
+          if (!data) return;
+          await api.setWallpaperSlideshow(!data.enabled, data.minutes).catch(() => undefined);
+          await refresh();
+        }}
+      />
+      {data?.enabled && (
+        <>
+          <h2 className="settings-subtitle">Change every</h2>
+          {INTERVALS.map((minutes) => (
+            <SettingsRow
+              key={minutes}
+              label={`${minutes} minutes`}
+              value={data.minutes === minutes ? "Current" : undefined}
+              onSelect={async () => {
+                await api.setWallpaperSlideshow(true, minutes).catch(() => undefined);
+                await refresh();
+              }}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }

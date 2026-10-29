@@ -82,6 +82,11 @@ export interface DateTimeState {
   clockWrong: boolean;
 }
 
+export interface SlideshowSettings {
+  enabled: boolean;
+  minutes: number;
+}
+
 export interface AboutInfo {
   system: string;
   processor: string;

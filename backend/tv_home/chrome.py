@@ -12,8 +12,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+from . import config
 from .apps import load_apps
-from .config import PROFILE
 
 
 def find_chrome() -> Optional[str]:
@@ -65,7 +65,7 @@ def _kiosk_chrome_pids(*, want_shell: bool) -> list[int]:
             continue
         if "--kiosk" not in cmd or "--type=" in cmd:
             continue
-        is_shell = str(PROFILE) in cmd
+        is_shell = str(config.PROFILE) in cmd
         if is_shell == want_shell:
             pids.append(int(pid))
     return pids

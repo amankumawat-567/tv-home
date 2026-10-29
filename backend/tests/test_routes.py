@@ -157,3 +157,20 @@ async def test_display_screen_off_minutes_persists_across_inhibit(client):
 
     await display_provider.restore()
     assert (await client.get("/api/display")).json()["screenOffMinutes"] == 15
+
+
+@pytest.mark.asyncio
+async def test_wallpaper_slideshow_persists(client):
+    res = await client.get("/api/wallpaper/slideshow")
+    assert res.json() == {"enabled": False, "minutes": 15}
+
+    res = await client.post("/api/wallpaper/slideshow", json={"enabled": True, "minutes": 30})
+    assert res.json() == {"enabled": True, "minutes": 30}
+
+    # Persists across requests (settings.json), not just in-memory for one call.
+    res = await client.get("/api/wallpaper/slideshow")
+    assert res.json() == {"enabled": True, "minutes": 30}
+
+    # Toggling off keeps the chosen interval.
+    res = await client.post("/api/wallpaper/slideshow", json={"enabled": False})
+    assert res.json() == {"enabled": False, "minutes": 30}

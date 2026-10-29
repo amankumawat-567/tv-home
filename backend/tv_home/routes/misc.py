@@ -3,9 +3,9 @@ import re
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from .. import clock, info
-from ..config import ICONS
-from ..wallpaper import current_wallpaper, next_wallpaper
+from .. import clock, config, info
+from ..models import SlideshowBody
+from ..wallpaper import current_wallpaper, next_wallpaper, set_slideshow, slideshow_settings
 
 router = APIRouter()
 
@@ -28,6 +28,16 @@ async def post_wallpaper():
     return {"ok": True}
 
 
+@router.get("/api/wallpaper/slideshow")
+async def get_wallpaper_slideshow():
+    return slideshow_settings()
+
+
+@router.post("/api/wallpaper/slideshow")
+async def post_wallpaper_slideshow(body: SlideshowBody):
+    return set_slideshow(body.enabled, body.minutes)
+
+
 @router.get("/wallpaper")
 async def get_wallpaper():
     wall = current_wallpaper()
@@ -40,7 +50,7 @@ async def get_wallpaper():
 async def get_icon(name: str):
     if not re.fullmatch(r"[a-z0-9-]+\.png", name):
         raise HTTPException(404, "Not found")
-    path = ICONS / name
+    path = config.ICONS / name
     if not path.exists():
         raise HTTPException(404, "Not found")
     return FileResponse(path, media_type="image/png")
