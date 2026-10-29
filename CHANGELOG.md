@@ -28,8 +28,9 @@ just back at the shell — on a perfectly normal, unmodified Xubuntu install.
   Fixed by treating "no match" as the expected non-error outcome (`|| true`)
   at every one of these spots. Reproduced locally with the exact stock
   `lightdm.conf` content reported against this bug, confirmed it now runs to
-  completion; still needs a real reinstall to confirm the autologin prompt
-  itself shows up end-to-end.
+  completion. **Confirmed on the real PC**: the autologin prompt appeared,
+  was answered, and the LightDM config was written — the first full
+  end-to-end confirmation of this flow on real hardware.
 
 ## [2.1.1]
 

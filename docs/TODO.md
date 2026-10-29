@@ -64,8 +64,10 @@ Material Symbols icons) are done; see "Added in 2.1.0" below.
 Everything under `backend/tv_home/system/` and `session/` — see each file's
 own "NOT RUNNABLE on this macOS sandbox" header and `session/README.md`'s
 verification checklist (10 cold boots, the 3-crash fallback, Ctrl+Alt+D,
-global Home/volume keys). The compositor setting (off, confirmed on real
-hardware) is the one item in this list that's already been checked there.
+global Home/volume keys). Confirmed on real hardware so far: the compositor
+setting (off), and now `install.sh`'s autologin flow end-to-end (see "Fixed
+from real-hardware testing (2.1.2)" below) — reboot-to-TV-Home itself still
+needs confirming.
 
 ## Fixed from real-hardware testing (2.0.2)
 
@@ -196,8 +198,9 @@ booted into TV Home after reboot.
   there's truly no controlling terminal anywhere (the actual case this guard
   exists for — the backend's own non-interactive self-update, Y6). Confirmed
   the missing config file on the reporting machine via `install.sh --check`
-  before writing the fix; the fix itself still needs a real reinstall to
-  verify the prompt now shows up end-to-end.
+  before writing the fix. Turned out to be a real bug but not the actual
+  cause of the reported symptom — see "Fixed from real-hardware testing
+  (2.1.2)" below for the fix that actually resolved it.
 
 ## Fixed from real-hardware testing (2.1.2)
 
@@ -222,8 +225,11 @@ error message at all.
   was a real bug but never actually got a chance to run. Fixed by treating
   "no match" as success (`|| true`) at every one of these spots. Reproduced
   locally against the exact stock `lightdm.conf` content from the real
-  report and confirmed `install.sh --check` now runs to completion; still
-  needs a real reinstall to confirm the autologin prompt itself appears.
+  report and confirmed `install.sh --check` now runs to completion.
+  **Confirmed fixed on the real PC**: the autologin prompt appeared, was
+  answered, and `/etc/lightdm/lightdm.conf.d/90-tv-home.conf` was written —
+  this is the first fully end-to-end real-hardware confirmation of the
+  autologin flow since it was first built.
 
 ## Open product decisions (from the PRD, not yet re-decided)
 
