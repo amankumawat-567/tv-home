@@ -33,7 +33,8 @@ export function KdeConnectPage() {
       <h1 className="settings-title">Remote connect (KDE Connect)</h1>
       <p className="dialog-message">
         Pair your phone to use its KDE Connect app as a trackpad and keyboard for TV Home — install the KDE Connect app on your phone first, then pick
-        it below.
+        it below. Once paired, look for "Run Commands" in the KDE Connect app for a ready-made TV remote (D-pad, OK, Back, Home, Menu, volume) — set up
+        automatically, no extra configuration needed.
       </p>
       <SettingsRow
         label="Scan for phones"

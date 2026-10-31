@@ -18,7 +18,7 @@ async def test_state_shape(client):
     res = await client.get("/api/state")
     assert res.status_code == 200
     body = res.json()
-    assert set(body) == {"user", "wallpaper", "apps", "catalog", "firstRunComplete", "status"}
+    assert set(body) == {"user", "wallpaper", "wallpaperVersion", "apps", "catalog", "firstRunComplete", "status"}
     assert set(body["status"]) == {"wifi", "bluetooth", "volume", "muted", "clockWrong"}
 
 
@@ -176,6 +176,63 @@ async def test_wallpaper_slideshow_persists(client):
     # Toggling off keeps the chosen interval.
     res = await client.post("/api/wallpaper/slideshow", json={"enabled": False})
     assert res.json() == {"enabled": False, "minutes": 30}
+
+
+def _seed_wallpapers(names: list[str]) -> None:
+    # wallpapers() ignores anything under 100KB (see its own docstring-less
+    # size check) to skip thumbnails/junk, so test fixtures have to actually
+    # clear that bar. Each file's content is distinct (keyed by its own name)
+    # so a test comparing "did this serve the right one" can't pass by
+    # accident just because every fixture happened to be identical bytes.
+    from tv_home import config
+
+    config.USER_WALLS.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (config.USER_WALLS / name).write_bytes(name.encode() + b"\xff" * 150_000)
+
+
+@pytest.mark.asyncio
+async def test_wallpaper_list_and_set(client):
+    _seed_wallpapers(["ocean-view.jpg", "city-night.jpg", "forest-path.jpg"])
+
+    res = await client.get("/api/wallpaper/list")
+    body = res.json()
+    assert body["current"] == 0
+    # wallpapers() sorts by path, i.e. alphabetically -- not insertion order.
+    assert [item["name"] for item in body["items"]] == ["City Night", "Forest Path", "Ocean View"]
+
+    res = await client.post("/api/wallpaper/set", json={"index": 2})
+    assert res.json()["current"] == 2
+
+    # The state broadcast's cache-busting token follows the selection.
+    res = await client.get("/api/state")
+    assert res.json()["wallpaperVersion"] == 2
+
+    # /wallpaper (the "current" one) and /wallpaper/{index} both serve real
+    # image bytes for the selected/given index.
+    res = await client.get("/wallpaper")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "no-store"
+    current_bytes = res.content
+
+    res = await client.get("/wallpaper/2")
+    assert res.status_code == 200
+    assert res.content == current_bytes
+
+    res = await client.get("/wallpaper/99")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_wallpaper_next_wraps_and_broadcasts(client):
+    _seed_wallpapers(["a.jpg", "b.jpg"])
+    assert (await client.get("/api/wallpaper/list")).json()["current"] == 0
+
+    await client.post("/api/wallpaper")
+    assert (await client.get("/api/wallpaper/list")).json()["current"] == 1
+
+    await client.post("/api/wallpaper")  # wraps back to the first
+    assert (await client.get("/api/wallpaper/list")).json()["current"] == 0
 
 
 @pytest.mark.asyncio

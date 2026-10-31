@@ -11,7 +11,7 @@ DEFAULT_SLIDESHOW_MINUTES = 15
 
 def wallpapers() -> list[Path]:
     found = []
-    for d in config.WALL_DIRS:
+    for d in config.wall_dirs():
         if not d.is_dir():
             continue
         for p in sorted(d.rglob("*")):
@@ -37,6 +37,25 @@ def next_wallpaper() -> None:
     settings = read_json(config.SETTINGS_FILE, {})
     settings["wallpaper"] = settings.get("wallpaper", 0) + 1
     write_json(config.SETTINGS_FILE, settings)
+
+
+def set_wallpaper(index: int) -> None:
+    settings = read_json(config.SETTINGS_FILE, {})
+    settings["wallpaper"] = index
+    write_json(config.SETTINGS_FILE, settings)
+
+
+def wallpaper_list() -> dict:
+    """The full set of discovered wallpapers plus which one is current — what
+    Settings > Wallpaper's gallery renders. Without this, the page only ever
+    offered a blind "Next wallpaper" button with no way to see what's
+    available or jump straight to one."""
+    walls = wallpapers()
+    idx = read_json(config.SETTINGS_FILE, {}).get("wallpaper", 0) % len(walls) if walls else 0
+    return {
+        "current": idx,
+        "items": [{"index": i, "name": p.stem.replace("-", " ").replace("_", " ").title()} for i, p in enumerate(walls)],
+    }
 
 
 def slideshow_settings() -> dict:

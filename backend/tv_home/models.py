@@ -72,6 +72,10 @@ class SlideshowBody(BaseModel):
     minutes: Optional[int] = None
 
 
+class WallpaperSetBody(BaseModel):
+    index: int
+
+
 class KeymapSetBody(BaseModel):
     action: str
     key: Optional[str] = None

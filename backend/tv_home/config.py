@@ -8,7 +8,15 @@ SETTINGS_FILE = APPDIR / "settings.json"
 ICONS = APPDIR / "icons"
 PROFILE = APPDIR / "chrome-profile"
 USER_WALLS = APPDIR / "wallpapers"
-WALL_DIRS = [USER_WALLS, Path("/usr/share/xfce4/backdrops"), Path("/usr/share/backgrounds")]
+
+
+def wall_dirs() -> list[Path]:
+    # A function, not a module-level list, so it re-reads USER_WALLS at call
+    # time -- a plain list built here once at import would freeze in whatever
+    # USER_WALLS was at that moment, breaking conftest.py's
+    # monkeypatch.setattr(config, "USER_WALLS", ...) test isolation the same
+    # way APPS_FILE/SETTINGS_FILE did before they were fixed the same way.
+    return [USER_WALLS, Path("/usr/share/xfce4/backdrops"), Path("/usr/share/backgrounds")]
 
 # The GitHub repo releases are published to — used by update.py to check for
 # and fetch new versions (Y6). Change this if you fork/republish elsewhere.

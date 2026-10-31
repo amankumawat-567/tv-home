@@ -217,8 +217,18 @@ run_doctor() {
   echo "KDE Connect (Settings > Remote connect — phone-as-remote pairing):"
   if command -v kdeconnect-cli >/dev/null; then
     echo "  installed"
+    if pgrep -x kdeconnectd >/dev/null; then
+      echo "  kdeconnectd: running"
+    else
+      echo "  kdeconnectd: NOT running — only starts inside the TV Home X session (tv-home-session.sh), not from this shell"
+    fi
   else
     echo "  NOT installed — apt install kdeconnect to enable it"
+  fi
+  if command -v xdotool >/dev/null; then
+    echo "  xdotool: installed (needed for the TV-remote buttons a paired phone gets)"
+  else
+    echo "  xdotool: NOT installed — a paired phone's TV-remote buttons won't do anything; apt install xdotool"
   fi
 }
 
@@ -230,7 +240,10 @@ fi
 log "Checking prerequisites"
 if command -v apt-get >/dev/null; then
   sudo apt-get update -qq
-  sudo apt-get install -y -qq python3-venv python3-pip xbindkeys curl rsync >/dev/null
+  # xdotool: the KDE Connect "Run Command" TV-remote buttons (see
+  # system/kdeconnect.py's TV_REMOTE_COMMANDS) shell out to it to inject the
+  # same key presses a real keyboard/remote would send.
+  sudo apt-get install -y -qq python3-venv python3-pip xbindkeys xdotool curl rsync >/dev/null
   # Best-effort, separate from the install above: KDE Connect is optional
   # (Settings > Remote connect lets a phone pair as a remote control -- its
   # own daemon handles the actual input injection once paired, so installing

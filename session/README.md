@@ -126,11 +126,42 @@ events from the phone's "Remote input" plugin via XTest straight into this
 X session, so there's no TV-Home-specific "remote control" code to speak of,
 just who's allowed to connect. Works in both directions: pick a reachable
 phone from the list to send it a pairing request, or accept/reject one a
-phone already sent. Talks to `kdeconnectd` over the **session** D-Bus bus
-(not the system bus BlueZ/logind use) — assumes the X session has a working
-one, same as every other X11 convenience already relies on; worth checking
-first if Settings → Remote connect shows "not installed or running" even
-with the package present.
+phone already sent. Talks to `kdeconnectd` over the **session** D-Bus bus (not the system bus
+BlueZ/logind use) — assumes the X session has a working one, same as every
+other X11 convenience already relies on.
+
+`kdeconnectd` itself is started directly by `tv-home-session.sh`, the same
+way `xbindkeys` is — the `kdeconnect` package's own autostart `.desktop`
+entry needs a real desktop session manager (xfce4-session, gnome-session, …)
+to process autostart entries at all, which this minimal kiosk session never
+runs, and the package's D-Bus service-activation file alone wasn't reliably
+starting it either. If Settings → Remote connect shows "not installed or
+running" with the package present, check `install.sh --check`'s "kdeconnectd:
+running" line — note that line only reflects reality when run *inside* the
+TV Home X session; run from a plain SSH shell it'll always say "NOT running"
+since that's a separate session with no kdeconnectd of its own.
+
+### TV remote buttons
+
+Pairing also writes a "Run Command" config for the phone's KDE Connect app —
+a real D-pad (Up/Down/Left/Right/OK/Back/Home/Menu/volume), not just the
+generic trackpad "Remote input" plugin. Each button shells out to `xdotool
+key <X>` with the same X11 keysym names a real keyboard's own keys already
+send (`backend/tv_home/system/kdeconnect.py`'s `TV_REMOTE_COMMANDS`), matched
+against `frontend/src/state/keymap.ts`'s defaults — so these buttons go
+through the exact same key handling a physical remote would, including
+picking up any remapping done in Settings → Remote. Requires `xdotool`,
+installed by `install.sh` alongside `xbindkeys`.
+
+The config file format and path
+(`~/.config/kdeconnect/<device-id>/kdeconnect_runcommand/config`, a Qt
+`QSettings` INI file holding one JSON-encoded `commands` string) came
+straight from kdeconnect-kde's own source
+(`core/kdeconnectpluginconfig.cpp`, `models/commandsmodel.cpp`), and the
+exact escaping was verified by round-tripping a generated file through a
+real `QSettings` instance (PySide6) — not guessed. *Unverified beyond
+that*: needs a real pairing on the real PC to confirm the phone's KDE
+Connect app actually shows the buttons without reopening the app.
 
 ## Bluetooth pairing (PIN/passkey devices)
 

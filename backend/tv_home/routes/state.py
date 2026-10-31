@@ -5,7 +5,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from .. import apps, chrome, clock, events, first_run, info
 from ..models import InstallBody, MoveBody
 from ..providers import bluetooth_provider, display_provider, sound_provider, wifi_provider
-from ..wallpaper import current_wallpaper
+from ..wallpaper import current_wallpaper, wallpaper_list
 
 router = APIRouter()
 
@@ -34,6 +34,10 @@ async def build_state() -> dict:
     return {
         "user": info.display_name(),
         "wallpaper": current_wallpaper() is not None,
+        # Purely a cache-busting token for the frontend's /wallpaper image URL
+        # (same URL, different content once this changes) -- not meant to be
+        # read as anything but "did the wallpaper change".
+        "wallpaperVersion": wallpaper_list()["current"],
         "apps": apps.apps_view(),
         "catalog": apps.catalog_view(),
         "firstRunComplete": first_run.is_complete(),

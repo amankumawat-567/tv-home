@@ -325,6 +325,66 @@ thing now takes almost 2 minutes where v1 (Flex Launcher) was instant.
   Chrome take so long to die here" question (slow disk? one specific app?)
   is still open even if this bounds its impact either way.
 
+## Fixed from real-hardware testing (2.2.2)
+
+Reported right after trying KDE Connect for the first time: pairing never
+worked at all ("couldn't able to connect"), and separately, all wallpapers
+were reported invisible/non-switchable in Settings.
+
+- **`kdeconnectd` never actually started.** Confirmed the same class of gap
+  as the earlier autologin/black-screen bugs: this minimal kiosk X session
+  runs no desktop session manager, so the `kdeconnect` package's XDG
+  autostart entry (which needs one) never fires, and its D-Bus
+  service-activation file alone didn't reliably pick up the slack either.
+  Fixed: `tv-home-session.sh` now starts `kdeconnectd` itself, same pattern
+  as `xbindkeys`, and kills it in `to_desktop()` for the same
+  orphaned-process reason xfwm4/xbindkeys needed that fix in 2.1.3.
+  `install.sh --check` now reports whether `kdeconnectd` is actually
+  running (only meaningful inside the TV Home X session, not from a plain
+  SSH shell — documented clearly since that distinction isn't obvious).
+  *Unverified on the real PC* — needs an actual pairing attempt to confirm.
+- **Wallpaper gallery was just a blind "Next" button; see "Added in 2.2.2"
+  below for the fix** — bundled with a real latent bug caught while
+  building it: `config.WALL_DIRS` was a module-level list frozen at import
+  time from `USER_WALLS`, the exact "bound at import, breaks monkeypatch
+  isolation" gotcha already fixed for other config values — converted to a
+  `wall_dirs()` function (`backend/tv_home/config.py`).
+
+## Added in 2.2.2
+
+- **A real TV-remote layout for KDE Connect** — pairing now also writes the
+  phone's KDE Connect "Run Command" plugin config with a D-pad (Up/Down/
+  Left/Right/OK/Back/Home/Menu/volume), each button running `xdotool key
+  <X>` with the same X11 keysym names a real keyboard sends, matched
+  against `frontend/src/state/keymap.ts`'s defaults (`backend/tv_home/
+  system/kdeconnect.py`'s `TV_REMOTE_COMMANDS`/`install_tv_remote()`). The
+  config file format and escaping (a Qt `QSettings` INI file) came directly
+  from kdeconnect-kde's own source (`core/kdeconnectpluginconfig.cpp`,
+  `models/commandsmodel.cpp`) and were verified by round-tripping a
+  generated file through a real `QSettings` instance (PySide6, installed
+  temporarily for this one check) — not guessed. `install.sh` now also
+  installs `xdotool`. *Unverified beyond the round-trip check*: needs a
+  real pairing on the real PC to confirm the phone's app actually shows the
+  buttons without reopening it.
+- **A real wallpaper gallery (Settings → Wallpaper)** — was previously just
+  a single preview + a blind "Next wallpaper" button with no way to see or
+  jump to a specific one. Added `GET /api/wallpaper/list`,
+  `GET /wallpaper/{index}` (thumbnails), `POST /api/wallpaper/set`
+  (`backend/tv_home/wallpaper.py`'s `wallpaper_list()`/`set_wallpaper()`),
+  and a thumbnail-grid frontend (`settings/WallpaperPage.tsx`) with the
+  current wallpaper marked. Also fixed the underlying staleness bug:
+  `/wallpaper` serves different content from the same URL once the
+  selection changes, which browsers can cache past the point it's stale —
+  added `Cache-Control: no-store` on that endpoint and a `wallpaperVersion`
+  cache-busting token in `AppState` so the Home screen's background
+  reliably updates too. *Verified*: `backend/tests/test_routes.py`'s new
+  wallpaper tests, and a manual Playwright pass with screenshots showing
+  all 8 starter-pack wallpapers in the gallery, selection moving the
+  "current" marker, and the Home screen's background actually changing.
+  E2E coverage intentionally skipped — unlike apps, wallpapers come purely
+  from the filesystem with no API to seed them, so a CI run (no wallpapers
+  present) would only ever exercise the empty state, not the gallery.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

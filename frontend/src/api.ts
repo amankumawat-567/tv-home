@@ -10,6 +10,7 @@ import type {
   SlideshowSettings,
   SoundState,
   UpdateInfo,
+  WallpaperList,
   WifiState,
 } from "./types";
 import type { KeyAction, Keymap } from "./state/keymap";
@@ -80,6 +81,8 @@ export const api = {
     post<{ ok: boolean; message: string }>("/api/power", { action }),
 
   wallpaperNext: () => post<{ ok: boolean }>("/api/wallpaper"),
+  wallpaperList: () => req<WallpaperList>("/api/wallpaper/list"),
+  wallpaperSet: (index: number) => post<WallpaperList>("/api/wallpaper/set", { index }),
   wallpaperSlideshow: () => req<SlideshowSettings>("/api/wallpaper/slideshow"),
   setWallpaperSlideshow: (enabled: boolean, minutes?: number) =>
     post<SlideshowSettings>("/api/wallpaper/slideshow", { enabled, minutes }),

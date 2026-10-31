@@ -4,6 +4,61 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.2.2]
+
+One fix and one feature, both found/requested right after trying KDE Connect
+pairing for the first time.
+
+### Fixed
+
+- **`kdeconnectd` never actually started, so pairing never worked at all.**
+  The `kdeconnect` package ships both a D-Bus service-activation file and an
+  XDG autostart `.desktop` entry for its daemon — the latter needs a real
+  desktop session manager (xfce4-session, gnome-session, …) to process
+  autostart entries at all, which this minimal kiosk session never runs, and
+  D-Bus activation alone wasn't reliably starting it either. Fixed:
+  `tv-home-session.sh` now starts `kdeconnectd` directly, the same way it
+  already does for `xbindkeys` (and kills it on "Go to desktop", for the
+  same orphaned-background-job reason `xfwm4`/`xbindkeys` already needed
+  that). `install.sh --check` now also reports whether `kdeconnectd` is
+  actually running, not just whether the package is installed.
+- **All wallpapers were invisible — the picker was just a blind "Next"
+  button.** Settings → Wallpaper never listed what wallpapers existed or let
+  you pick one directly; the only option cycled forward one at a time with
+  no preview of what was coming. Separately, the preview/background image
+  wouldn't reliably update after switching anyway — `/wallpaper` serves
+  different content from the same URL depending on which one is selected,
+  which browsers can cache past the point it's stale. Fixed: a real
+  thumbnail gallery (`GET /api/wallpaper/list`, `GET /wallpaper/{index}`,
+  `POST /api/wallpaper/set`) showing every wallpaper with the current one
+  marked, direct tap-to-select, `Cache-Control: no-store` on the
+  current-wallpaper endpoint, and a `wallpaperVersion` cache-busting token
+  in app state so the Home screen's background reliably updates. Also
+  fixed a real latent bug caught along the way: `config.WALL_DIRS` was a
+  module-level list built once at import time from `USER_WALLS`, the exact
+  "bound at import, breaks monkeypatch test isolation" gotcha this project
+  already fixed for other config values — converted to a `wall_dirs()`
+  function. Verified with a real Playwright pass against seeded wallpaper
+  files (screenshots showing all 8 wallpapers, selection, and the Home
+  background actually changing) and new backend tests.
+
+### Added
+
+- **A real TV-remote layout for KDE Connect, not just the generic
+  trackpad.** Pairing now also writes the phone's KDE Connect "Run Command"
+  plugin config with a ready-made D-pad (Up/Down/Left/Right/OK/Back/Home/
+  Menu/volume) — each button runs `xdotool key <X>` using the same X11
+  keysym names a real keyboard already sends, matched against
+  `state/keymap.ts`'s defaults so these buttons go through the exact same
+  key handling (including any remapping done in Settings → Remote), no
+  separate input-handling code needed. The config file format
+  (`~/.config/kdeconnect/<id>/kdeconnect_runcommand/config`, a Qt
+  `QSettings` INI file) and exact escaping were taken from kdeconnect-kde's
+  own source and verified by round-tripping a generated file through a real
+  `QSettings` instance — not guessed. `install.sh` now also installs
+  `xdotool`. *Unverified beyond that*: needs a real pairing on the real PC
+  to confirm the phone's app actually shows the buttons.
+
 ## [2.2.1]
 
 Fixes "Go to desktop" (and the Home key) taking up to ~90 seconds-2 minutes

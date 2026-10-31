@@ -112,6 +112,16 @@ export interface SlideshowSettings {
   minutes: number;
 }
 
+export interface WallpaperListItem {
+  index: number;
+  name: string;
+}
+
+export interface WallpaperList {
+  current: number;
+  items: WallpaperListItem[];
+}
+
 export interface AboutInfo {
   system: string;
   processor: string;
@@ -140,6 +150,7 @@ export interface StatusSnapshot {
 export interface AppState {
   user: string;
   wallpaper: boolean;
+  wallpaperVersion: number;
   apps: AppTile[];
   catalog: CatalogEntry[];
   firstRunComplete: boolean;

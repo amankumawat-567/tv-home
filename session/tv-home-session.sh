@@ -37,7 +37,7 @@ to_desktop() {
   # startxfce4's own xfwm4 can never take over -- producing a black screen
   # (just the xsetroot background, no panel, no desktop icons) instead of a
   # real desktop. Kill them first so the display is clean for the handoff.
-  kill "${XFWM4_PID:-}" "${XBINDKEYS_PID:-}" 2>/dev/null
+  kill "${XFWM4_PID:-}" "${XBINDKEYS_PID:-}" "${KDECONNECTD_PID:-}" 2>/dev/null
   exec startxfce4
 }
 
@@ -68,6 +68,18 @@ xset s off -dpms 2>/dev/null  # our own code owns screen blanking — see backen
 xsetroot -solid "#101418" 2>/dev/null
 xbindkeys -f "$APPDIR/xbindkeysrc" &
 XBINDKEYS_PID=$!
+
+# KDE Connect's own package ships both a D-Bus service-activation file and an
+# XDG autostart .desktop entry for kdeconnectd -- the latter needs a desktop
+# session manager (xfce4-session, gnome-session, ...) to process autostart
+# entries at all, which this minimal kiosk session never runs, and D-Bus
+# activation alone hasn't proven reliable here either. Just start it
+# ourselves, same as xbindkeys above, so Settings > Remote connect has
+# something to actually talk to. Harmless if the package isn't installed.
+if command -v kdeconnectd >/dev/null; then
+  kdeconnectd &
+  KDECONNECTD_PID=$!
+fi
 
 CHROME="$(find_chrome)"
 if [ -z "$CHROME" ]; then
