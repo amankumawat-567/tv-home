@@ -5,17 +5,21 @@ go_home() deliberately excludes the shell window (by design, for the Home
 key) while the old "Go to desktop" implementation never closed anything in
 its place, just killed the backend process — leaving tv-home-session.sh's
 blocking wait on the still-running shell window with nothing to act on."""
+import pytest
+
 from tv_home import chrome
 
 
-def test_go_home_degrades_without_proc():
-    ok, message = chrome.go_home()
+@pytest.mark.asyncio
+async def test_go_home_degrades_without_proc():
+    ok, message = await chrome.go_home()
     assert ok
     assert message == "No app is open."
 
 
-def test_close_shell_degrades_without_proc():
-    assert chrome.close_shell() is False
+@pytest.mark.asyncio
+async def test_close_shell_degrades_without_proc():
+    assert await chrome.close_shell() is False
 
 
 def test_close_shell_and_go_home_are_distinct_functions():

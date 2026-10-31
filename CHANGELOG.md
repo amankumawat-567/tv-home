@@ -4,6 +4,33 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.2.1]
+
+Fixes "Go to desktop" (and the Home key) taking up to ~90 seconds-2 minutes
+instead of being instant, reported after the black-screen fix in 2.1.3.
+
+### Fixed
+
+- **Closing Chrome only ever sent SIGTERM, with nothing forcing it to
+  actually die quickly.** `go_home()`/`close_shell()` sent SIGTERM and
+  returned immediately, trusting Chrome to exit promptly — on this hardware
+  (an old PC, possibly slow storage) a kiosk profile's cache/cookie/
+  service-worker flush, or just one hung renderer, can leave the browser
+  process alive for a long time after SIGTERM. That directly delayed
+  `tv-home-session.sh`'s foreground wait on that exact process (for "Go to
+  desktop") and, separately, `systemctl --user stop` on the backend service
+  (which has no `TimeoutStopSec`, so a slow stop fell back to systemd's
+  90-second default). Fixed: both functions now give Chrome a 2-second grace
+  period, then SIGKILL — unconditional at the OS level, so it can't be slow
+  for the same reasons SIGTERM can be — and the session script's backend
+  stop is now `--no-block` so it can never hold up the desktop handoff
+  either way. Verified locally that the escalation actually reaches SIGKILL
+  against a process that ignores SIGTERM, and that a normal fast-exiting
+  process is detected immediately rather than always eating the grace
+  period (an actual bug caught along the way — see docs/TODO.md).
+  *Unverified on the real PC* — needs an actual "Go to desktop" press to
+  confirm the full round-trip is fast again.
+
 ## [2.2.0]
 
 Two new remote-connectivity features.

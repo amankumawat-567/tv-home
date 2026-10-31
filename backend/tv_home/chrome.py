@@ -5,6 +5,7 @@ fix (see the PRD's "Lessons learned" — Chrome rewrites its own process title,
 so matching by argv string alone is unreliable; identifying the binary via
 /proc/<pid>/exe is what made closing apps reliable).
 """
+import asyncio
 import os
 import shutil
 import signal
@@ -13,6 +14,59 @@ from pathlib import Path
 from typing import Optional
 
 from . import config
+
+# SIGTERM asks Chrome to shut down gracefully, but on this hardware that can
+# take far longer than expected -- a kiosk profile accumulating cache/cookies/
+# service-worker state flushed to a slow old disk, or just one hung renderer,
+# can leave the browser process alive for a long time after SIGTERM, which
+# directly delays "Go to desktop" (tv-home-session.sh's foreground wait on
+# this exact process) and the Home key for however long that takes. Give it a
+# short grace period, then SIGKILL -- unconditional at the OS level, so it
+# can't be slow for the same reasons SIGTERM can be.
+_KILL_GRACE_SECONDS = 2.0
+
+
+def _alive(pid: int) -> bool:
+    # A launched app's Chrome is our own child (spawned via subprocess.Popen
+    # in launch() below, never awaited since nothing keeps that Popen object
+    # around) -- once it exits it becomes a zombie until reaped, and kill(pid,
+    # 0) alone can't tell "still running" from "zombie, nobody's called wait()
+    # on it yet", which would otherwise make every close here sit out the
+    # full grace period even when Chrome exits instantly. Reap it here first.
+    # The shell window is a child of tv-home-session.sh, not of us -- for
+    # that PID waitpid() raises ECHILD, which just means "not our child, fall
+    # through to the kill check" (the actual parent reaps it promptly, since
+    # bash is blocked waiting on it as its own foreground command).
+    try:
+        os.waitpid(pid, os.WNOHANG)
+    except OSError:
+        pass
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+async def _terminate(pids: list[int]) -> None:
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except Exception:
+            pass
+    if not pids:
+        return
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + _KILL_GRACE_SECONDS
+    while loop.time() < deadline:
+        if not any(_alive(pid) for pid in pids):
+            return
+        await asyncio.sleep(0.1)
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except Exception:
+            pass
 from .apps import load_apps
 
 
@@ -71,19 +125,14 @@ def _kiosk_chrome_pids(*, want_shell: bool) -> list[int]:
     return pids
 
 
-def go_home() -> tuple[bool, str]:
+async def go_home() -> tuple[bool, str]:
     """Close every kiosk Chrome window that isn't this backend's own shell window."""
-    closed = 0
-    for pid in _kiosk_chrome_pids(want_shell=False):
-        try:
-            os.kill(pid, signal.SIGTERM)
-            closed += 1
-        except Exception:
-            pass
-    return True, "" if closed else "No app is open."
+    pids = _kiosk_chrome_pids(want_shell=False)
+    await _terminate(pids)
+    return True, "" if pids else "No app is open."
 
 
-def close_shell() -> bool:
+async def close_shell() -> bool:
     """Close TV Home's own shell window — the one go_home() deliberately
     leaves alone. Used by Power > Go to desktop so tv-home-session.sh's
     foreground `chrome ... "$BACKEND_URL/"` returns and its sentinel check
@@ -91,11 +140,6 @@ def close_shell() -> bool:
     this, killing only the backend left the shell window running with
     nothing to talk to, and the session script stayed blocked waiting for a
     window that was never going to exit on its own."""
-    closed = False
-    for pid in _kiosk_chrome_pids(want_shell=True):
-        try:
-            os.kill(pid, signal.SIGTERM)
-            closed = True
-        except Exception:
-            pass
-    return closed
+    pids = _kiosk_chrome_pids(want_shell=True)
+    await _terminate(pids)
+    return bool(pids)

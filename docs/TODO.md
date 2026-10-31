@@ -292,6 +292,39 @@ drops to a black screen instead of the real XFCE desktop.
   BlueZ agent registration and callbacks — needs a real Bluetooth adapter
   and a PIN/passkey device on the real PC.
 
+## Fixed from real-hardware testing (2.2.1)
+
+Reported after confirming the "Go to desktop" black-screen fix: the whole
+thing now takes almost 2 minutes where v1 (Flex Launcher) was instant.
+
+- **SIGTERM alone, with nothing forcing Chrome to actually die promptly.**
+  `chrome.go_home()`/`close_shell()` sent SIGTERM and trusted Chrome to exit
+  quickly — on this hardware, a kiosk profile's cache/cookie/service-worker
+  flush to a slow old disk (or one hung renderer) can leave the browser
+  process alive well after SIGTERM. That delays two separate things: the
+  session script's foreground wait on that exact process (closing the shell
+  window is literally what lets "Go to desktop" proceed), and
+  `systemctl --user stop tv-home-backend.service` in `to_desktop()`, which
+  has no `TimeoutStopSec` and so falls back to systemd's default (commonly
+  90s) if the backend itself is slow to stop for the same underlying reason.
+  Fixed: both chrome functions now give Chrome a 2-second grace period after
+  SIGTERM, then SIGKILL (unconditional at the OS level — can't be slow for
+  the same reasons SIGTERM can be); the session script's stop is now
+  `--no-block` so it can never hold up the handoff regardless. Found and
+  fixed a real bug while building this: the liveness check
+  (`os.kill(pid, 0)`) can't tell "still running" from "zombie, not yet
+  reaped" for a process the backend itself spawned (a launched app's
+  Chrome) — without reaping it first via `os.waitpid(pid, os.WNOHANG)`,
+  *every* close would eat the full 2-second grace period even when Chrome
+  exits instantly, which would have made the Home key always feel slightly
+  laggy. Verified locally (not on real hardware) with a process that
+  ignores SIGTERM (confirms escalation to SIGKILL within the grace period)
+  and one that exits normally (confirms it's detected in ~0.1s, not 2s).
+  *Unverified on the real PC* — needs an actual "Go to desktop" press to
+  confirm the full round-trip is fast again; the underlying "why does
+  Chrome take so long to die here" question (slow disk? one specific app?)
+  is still open even if this bounds its impact either way.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

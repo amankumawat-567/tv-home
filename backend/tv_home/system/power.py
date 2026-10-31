@@ -46,7 +46,7 @@ async def action(kind: str) -> tuple[bool, str]:
         # tv-home-session.sh's foreground wait on it return and act on the
         # sentinel — see chrome.close_shell()'s own docstring for why killing
         # the backend alone (the old, broken approach) never worked.
-        chrome.close_shell()
+        await chrome.close_shell()
         return True, "Going to the desktop"
 
     if kind not in ("sleep", "restart", "poweroff"):

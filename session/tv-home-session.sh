@@ -25,7 +25,11 @@ log() { echo "[tv-home-session] $*" >&2; }
 to_desktop() {
   log "Falling back to the regular desktop: $1"
   rm -f "$SENTINEL"
-  systemctl --user stop tv-home-backend.service 2>/dev/null
+  # --no-block: don't wait for the service to actually finish stopping (the
+  # unit has no explicit TimeoutStopSec, so a slow shutdown would otherwise
+  # fall back to systemd's default -- commonly 90s -- and hold up handing off
+  # to the desktop that whole time for no reason nothing here depends on).
+  systemctl --user stop --no-block tv-home-backend.service 2>/dev/null
   pkill -f "\-\-kiosk.*127\.0\.0\.1:8000" 2>/dev/null
   # xfwm4/xbindkeys below are backgrounded, not children of this exec --
   # exec replaces this process but leaves them running, orphaned. The old

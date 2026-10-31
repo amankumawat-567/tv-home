@@ -107,6 +107,14 @@ on the display meant `startxfce4`'s own window manager could never take
 over, leaving a black screen (just the `xsetroot` background, no panel, no
 desktop icons) instead of a real desktop.
 
+`go_home()`/`close_shell()` send SIGTERM and then give Chrome a 2-second
+grace period before SIGKILL, rather than trusting SIGTERM alone to work
+promptly — on this hardware a kiosk profile's cache/cookie flush (or one
+hung renderer) can leave Chrome alive for a long time after SIGTERM, which
+otherwise directly delayed the foreground wait above, and separately
+`to_desktop()`'s `systemctl --user stop` (which also now runs `--no-block`
+so a slow backend shutdown can never hold up the desktop handoff either).
+
 ## Remote connect (KDE Connect)
 
 `install.sh` installs the `kdeconnect` package (best-effort — a missing

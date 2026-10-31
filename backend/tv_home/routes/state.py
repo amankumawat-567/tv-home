@@ -80,7 +80,7 @@ async def complete_first_run():
 
 @router.post("/api/home")
 async def post_home():
-    ok, message = chrome.go_home()
+    ok, message = await chrome.go_home()
     events.publish_running(None)
     # Only Home counts as "idle" — re-arm whatever screen-off timer Settings >
     # Display is set to (see display_provider.inhibit() below for why).
