@@ -34,6 +34,16 @@ export function KdeConnectPage() {
   };
 
   const devices = data.devices ?? [];
+  // Re-pairing the same phone (e.g. after reinstalling its KDE Connect app)
+  // creates a brand new device ID each time, leaving an old, no-longer-
+  // reachable entry behind with the exact same name as the live one --
+  // identical-looking rows made it easy to act on the wrong one (confirmed
+  // the hard way: TV_REMOTE_COMMANDS got pushed to a stale duplicate while
+  // the phone was actually talking to a different ID). Disambiguate by
+  // showing a short ID suffix whenever a name isn't unique.
+  const nameCounts = new Map<string, number>();
+  for (const d of devices) nameCounts.set(d.name, (nameCounts.get(d.name) ?? 0) + 1);
+  const labelFor = (d: KdeConnectDevice) => ((nameCounts.get(d.name) ?? 0) > 1 ? `${d.name} (${d.id.slice(0, 6)})` : d.name);
 
   return (
     <div className="settings-page">
@@ -56,14 +66,16 @@ export function KdeConnectPage() {
       {devices.map((d) => (
         <Fragment key={d.id}>
           <SettingsRow
-            label={d.name}
+            label={labelFor(d)}
             value={
               acting === d.id
                 ? "Working…"
                 : d.incomingRequest
                   ? "Wants to pair"
                   : d.paired
-                    ? "Paired"
+                    ? d.reachable
+                      ? "Paired"
+                      : "Paired — not nearby"
                     : d.reachable
                       ? "Available"
                       : "Not nearby"
@@ -76,7 +88,7 @@ export function KdeConnectPage() {
           />
           {d.incomingRequest && (
             <SettingsRow
-              label={<span className="settings-row-indent">Reject {d.name}</span>}
+              label={<span className="settings-row-indent">Reject {labelFor(d)}</span>}
               danger
               onSelect={() => void run(d, "reject")}
             />
@@ -84,15 +96,16 @@ export function KdeConnectPage() {
           {d.paired && !d.incomingRequest && (
             <>
               <SettingsRow
-                label={<span className="settings-row-indent">Set up TV remote for {d.name}</span>}
+                label={<span className="settings-row-indent">Set up TV remote for {labelFor(d)}</span>}
+                disabled={!d.reachable}
                 onSelect={() => void run(d, "install-remote")}
               />
               <SettingsRow
-                label={<span className="settings-row-indent">Unpair {d.name}</span>}
+                label={<span className="settings-row-indent">Unpair {labelFor(d)}</span>}
                 danger
                 onSelect={() =>
                   askConfirm({
-                    title: `Unpair ${d.name}?`,
+                    title: `Unpair ${labelFor(d)}?`,
                     message: "You'll need to pair it again to use it as a remote.",
                     confirmLabel: "Unpair",
                     tone: "danger",

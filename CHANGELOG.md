@@ -4,6 +4,37 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.2.4]
+
+Found while debugging why 2.2.3's "Set up TV remote" button appeared not to
+exist at all on the real PC, despite `VERSION` reading 2.2.3 — a much bigger
+bug than the KDE Connect feature itself.
+
+### Fixed
+
+- **Updating never actually refreshed the kiosk screen.** `install.sh`
+  restarted the backend service on update, but the already-running kiosk
+  Chrome window has no reason to reload on its own — it just keeps showing
+  whatever frontend bundle it loaded at its last page load, indefinitely.
+  So the backend (and `VERSION`) would update correctly while the *visible
+  UI* silently kept showing the old one, with nothing telling you this was
+  happening — exactly how a confirmed-updated install could be missing an
+  entire settings page. Fixed: `install.sh` now also closes the kiosk shell
+  window after restarting the backend (the same mechanism "Go to desktop"
+  uses to close it, minus the sentinel, so `tv-home-session.sh`'s loop
+  relaunches it fresh instead of falling to the desktop) — covers both a
+  manual `install.sh` re-run and the in-app Settings → About self-update,
+  since both go through the same script.
+- **Duplicate KDE Connect devices with identical names were
+  indistinguishable in Settings → Remote connect.** Re-pairing a phone
+  after reinstalling its KDE Connect app leaves a stale, no-longer-reachable
+  entry behind with the exact same name as the live one — the UI showed
+  "Paired" for both with no way to tell them apart, which is how "Set up TV
+  remote" ended up getting pushed to a stale duplicate instead of the real
+  connection. Fixed: paired devices now show "Paired — not nearby" when not
+  currently reachable, duplicate names get a short ID suffix, and "Set up
+  TV remote" is disabled on an unreachable entry entirely.
+
 ## [2.2.3]
 
 Follow-up to 2.2.2's TV remote feature: a real pairing (done via a Mac

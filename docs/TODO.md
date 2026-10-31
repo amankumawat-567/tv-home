@@ -404,6 +404,45 @@ were reported invisible/non-switchable in Settings.
   Mac from the real-hardware report) to confirm Run Commands actually
   populates after using this.
 
+## Fixed from real-hardware testing (2.2.4)
+
+Found while debugging why 2.2.3's "Set up TV remote" button didn't even
+exist on the real PC's Settings screen, despite a confirmed `VERSION` of
+2.2.3 — a much bigger, general bug, not anything specific to KDE Connect.
+
+- **Updating never refreshed the kiosk screen.** `install.sh` restarts the
+  backend service on update, but the already-running kiosk Chrome window
+  has no reason to reload on its own — it keeps showing whatever frontend
+  bundle it loaded at its last page load indefinitely, with nothing telling
+  the user this is happening. The backend (and `VERSION`) update correctly;
+  the *visible UI* silently doesn't, however long ago it was last loaded.
+  This likely explains more than just this one incident over the course of
+  real-hardware testing. Fixed: `install.sh` now also closes the kiosk
+  shell window right after restarting the backend — same mechanism "Go to
+  desktop" uses minus the sentinel, so `tv-home-session.sh`'s loop
+  relaunches it fresh against the updated backend instead of falling to the
+  desktop. `|| true` on the `pkill` matters here: under `set -e`, no kiosk
+  running (e.g. updating over SSH with nobody at the TV) would otherwise
+  abort the rest of the script. Covers both a manual `install.sh` re-run and
+  the in-app self-update, since `apply_update()` calls the same script.
+  *Unverified on the real PC* — needs an actual update to confirm the
+  screen refreshes on its own now.
+- **Duplicate KDE Connect devices were indistinguishable, which is almost
+  certainly why 2.2.3's fix hadn't visibly worked yet either** (separately
+  from the stale-UI issue above) — real diagnostic output showed two
+  device IDs sharing the name "OnePlus Nord CE 2 Lite 5G" and two sharing
+  "Nord CE5" (from re-pairing after reinstalling the phone's KDE Connect
+  app), with only one of each pair actually `reachable`. The UI showed
+  "Paired" identically for both, with no way to tell which was the real,
+  live connection — explaining how "Set up TV remote" could get pushed to
+  a stale duplicate while the phone was actually talking to a different ID.
+  Fixed in `settings/KdeConnectPage.tsx`: "Paired — not nearby" when not
+  reachable, a short ID suffix on duplicate names, "Set up TV remote"
+  disabled on an unreachable entry. *Verified*: new backend test
+  (`test_kdeconnect_duplicate_names_distinguished_by_reachability`) and a
+  manual Playwright pass against mock data shaped exactly like the real
+  diagnostic output (two same-named devices, one reachable).
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

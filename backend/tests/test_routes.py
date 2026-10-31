@@ -404,13 +404,30 @@ async def test_kdeconnect_accept_and_reject_incoming_request(client):
 
 
 @pytest.mark.asyncio
+async def test_kdeconnect_duplicate_names_distinguished_by_reachability(client):
+    # Re-pairing a phone after reinstalling its KDE Connect app leaves a
+    # stale duplicate with an identical name behind on the real PC -- the
+    # API must expose reachability per-ID so the frontend can tell them
+    # apart (it used to show "Paired" for both, which is how a user ended up
+    # pushing the TV remote config to the wrong one).
+    devices = (await client.get("/api/kdeconnect")).json()["devices"]
+    laptops = [d for d in devices if d["name"] == "Office Laptop"]
+    assert len(laptops) == 2
+    assert {d["id"]: d["reachable"] for d in laptops} == {
+        "272df33ad75442f4b0ea8d5abd88adc2": True,
+        "199b325932ee4370a1600aa40c8c5ca4": False,
+    }
+    assert all(d["paired"] for d in laptops)
+
+
+@pytest.mark.asyncio
 async def test_kdeconnect_install_remote_on_already_paired_device(client):
     # The device-already-paired path: pair()/accept() only write the Run
     # Command config at the moment pairing happens, so anything paired
     # before that feature existed (or paired through some path other than
     # this app) never got it -- install-remote covers that without needing
     # an unpair/re-pair.
-    res = await client.post("/api/kdeconnect/install-remote", json={"id": "dev-office-laptop", "name": "Office Laptop"})
+    res = await client.post("/api/kdeconnect/install-remote", json={"id": "272df33ad75442f4b0ea8d5abd88adc2", "name": "Office Laptop"})
     body = res.json()
     assert body["ok"] is True
     assert "Office Laptop" in body["message"]

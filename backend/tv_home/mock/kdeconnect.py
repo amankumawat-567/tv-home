@@ -1,14 +1,20 @@
 """Fake KDE Connect backend used when TV_HOME_MOCK=1 — mirrors
 system/kdeconnect.py's shape: a reachable-but-unpaired phone to pair with
-(box-initiated), and a second phone that has already sent an incoming
-pairing request (phone-initiated) for the Accept/Reject path.
+(box-initiated), a second phone that has already sent an incoming pairing
+request (phone-initiated) for the Accept/Reject path, and a stale duplicate
+of the first phone (same name, different ID, not reachable) to exercise the
+disambiguation/reachability-aware UI -- re-pairing a phone after reinstalling
+its KDE Connect app creates exactly this on the real PC (confirmed the hard
+way: a stale duplicate with an identical name made it easy to push the TV
+remote config to the wrong one).
 """
 import asyncio
 
 _state = {
     "available": True,  # flip to False to test the "not installed" empty state
     "devices": [
-        {"id": "dev-office-laptop", "name": "Office Laptop", "paired": True, "reachable": True, "incomingRequest": False},
+        {"id": "272df33ad75442f4b0ea8d5abd88adc2", "name": "Office Laptop", "paired": True, "reachable": True, "incomingRequest": False},
+        {"id": "199b325932ee4370a1600aa40c8c5ca4", "name": "Office Laptop", "paired": True, "reachable": False, "incomingRequest": False},
         {"id": "dev-pixel", "name": "Aman's Pixel", "paired": False, "reachable": True, "incomingRequest": False},
         {"id": "dev-old-phone", "name": "Old Phone", "paired": False, "reachable": True, "incomingRequest": True},
     ],

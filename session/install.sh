@@ -316,6 +316,21 @@ install_polkit_rule
 if systemctl --user is-active --quiet tv-home-backend.service 2>/dev/null; then
   log "Restarting the backend with the new version"
   systemctl --user restart tv-home-backend.service
+  # The kiosk Chrome window caches whatever frontend bundle it loaded at its
+  # last page load -- restarting the backend alone doesn't make it reload,
+  # so an update can appear to do nothing even though the new version is
+  # genuinely running (confirmed the hard way: a UI-only feature was
+  # completely missing from the screen despite VERSION already reading the
+  # new release). Closing just the shell window (never a currently launched
+  # app -- this pattern only matches Chrome windows pointed at the backend's
+  # own URL) makes tv-home-session.sh's loop notice it exited and relaunch
+  # it fresh against the now-updated backend. Same mechanism "Go to desktop"
+  # uses to close the shell, minus the go-desktop sentinel, so it loops back
+  # into TV Home instead of falling to the regular desktop. `|| true`
+  # matters here: under set -e, pkill matching nothing (no kiosk running --
+  # e.g. this update ran over SSH while nobody's at the TV) exits 1 and
+  # would otherwise abort the rest of this script.
+  pkill -f "\-\-kiosk.*127\.0\.0\.1:8000" 2>/dev/null || true
 fi
 
 if $FROM_RELEASE; then
