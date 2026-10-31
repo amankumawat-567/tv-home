@@ -401,3 +401,19 @@ async def test_kdeconnect_accept_and_reject_incoming_request(client):
     old_phone = next(d for d in devices if d["id"] == "dev-old-phone")
     assert old_phone["incomingRequest"] is False
     assert old_phone["paired"] is False
+
+
+@pytest.mark.asyncio
+async def test_kdeconnect_install_remote_on_already_paired_device(client):
+    # The device-already-paired path: pair()/accept() only write the Run
+    # Command config at the moment pairing happens, so anything paired
+    # before that feature existed (or paired through some path other than
+    # this app) never got it -- install-remote covers that without needing
+    # an unpair/re-pair.
+    res = await client.post("/api/kdeconnect/install-remote", json={"id": "dev-office-laptop", "name": "Office Laptop"})
+    body = res.json()
+    assert body["ok"] is True
+    assert "Office Laptop" in body["message"]
+
+    res = await client.post("/api/kdeconnect/install-remote", json={"id": "does-not-exist", "name": "Nothing"})
+    assert res.json()["ok"] is False

@@ -61,3 +61,10 @@ async def unpair(device_id: str, name: str) -> tuple[bool, str]:
     if d:
         d["paired"] = False
     return True, f"Unpaired {name}."
+
+
+async def install_remote(device_id: str, name: str) -> tuple[bool, str]:
+    d = _find(device_id)
+    if not d:
+        return False, "Unknown device."
+    return True, f"TV remote set up for {name} — check Run Commands in its KDE Connect app."

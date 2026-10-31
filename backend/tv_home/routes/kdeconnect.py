@@ -38,3 +38,14 @@ async def unpair(body: KdeConnectDeviceBody):
     ok, message = await kdeconnect_provider.unpair(body.id, body.name)
     await broadcast_state()
     return {"ok": ok, "message": message}
+
+
+@router.post("/install-remote")
+async def install_remote(body: KdeConnectDeviceBody):
+    # For a device that's already paired -- pair()/accept() only write the
+    # Run Command config at the moment pairing happens, so anything paired
+    # before this feature existed (or paired through some path other than
+    # this page, e.g. accepted entirely from the other device's own app)
+    # never got it. No unpair/re-pair needed to retrigger it.
+    ok, message = await kdeconnect_provider.install_remote(body.id, body.name)
+    return {"ok": ok, "message": message}

@@ -64,6 +64,7 @@ export const api = {
   kdeconnectAccept: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/accept", { id, name }),
   kdeconnectReject: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/reject", { id, name }),
   kdeconnectUnpair: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/unpair", { id, name }),
+  kdeconnectInstallRemote: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/install-remote", { id, name }),
 
   sound: () => req<SoundState>("/api/sound"),
   soundAction: (action: "up" | "down" | "mute", ) => post<{ ok: boolean }>("/api/sound", { action }),

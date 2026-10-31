@@ -7,6 +7,14 @@ import { usePolling } from "../utils/usePolling";
 import { SettingsRow } from "../components/SettingsRow";
 import type { KdeConnectDevice } from "../types";
 
+const ACTION_FN = {
+  pair: "kdeconnectPair",
+  accept: "kdeconnectAccept",
+  reject: "kdeconnectReject",
+  unpair: "kdeconnectUnpair",
+  "install-remote": "kdeconnectInstallRemote",
+} as const;
+
 export function KdeConnectPage() {
   const { data, refresh } = usePolling(() => api.kdeconnect(), 5000);
   const [acting, setActing] = useState<string | null>(null);
@@ -17,10 +25,9 @@ export function KdeConnectPage() {
     return <p className="settings-empty">{data.error ?? "KDE Connect isn't installed or running."}</p>;
   }
 
-  const run = async (device: KdeConnectDevice, action: "pair" | "accept" | "reject" | "unpair") => {
+  const run = async (device: KdeConnectDevice, action: keyof typeof ACTION_FN) => {
     setActing(device.id);
-    const fn = action === "pair" ? "kdeconnectPair" : action === "accept" ? "kdeconnectAccept" : action === "reject" ? "kdeconnectReject" : "kdeconnectUnpair";
-    const result = await api[fn](device.id, device.name).catch((e: Error) => ({ ok: false, message: e.message }));
+    const result = await api[ACTION_FN[action]](device.id, device.name).catch((e: Error) => ({ ok: false, message: e.message }));
     setActing(null);
     pushToast(result.message, result.ok ? "good" : "bad");
     refresh();
@@ -75,19 +82,25 @@ export function KdeConnectPage() {
             />
           )}
           {d.paired && !d.incomingRequest && (
-            <SettingsRow
-              label={<span className="settings-row-indent">Unpair {d.name}</span>}
-              danger
-              onSelect={() =>
-                askConfirm({
-                  title: `Unpair ${d.name}?`,
-                  message: "You'll need to pair it again to use it as a remote.",
-                  confirmLabel: "Unpair",
-                  tone: "danger",
-                  onConfirm: () => void run(d, "unpair"),
-                })
-              }
-            />
+            <>
+              <SettingsRow
+                label={<span className="settings-row-indent">Set up TV remote for {d.name}</span>}
+                onSelect={() => void run(d, "install-remote")}
+              />
+              <SettingsRow
+                label={<span className="settings-row-indent">Unpair {d.name}</span>}
+                danger
+                onSelect={() =>
+                  askConfirm({
+                    title: `Unpair ${d.name}?`,
+                    message: "You'll need to pair it again to use it as a remote.",
+                    confirmLabel: "Unpair",
+                    tone: "danger",
+                    onConfirm: () => void run(d, "unpair"),
+                  })
+                }
+              />
+            </>
           )}
         </Fragment>
       ))}

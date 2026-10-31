@@ -385,6 +385,25 @@ were reported invisible/non-switchable in Settings.
   from the filesystem with no API to seed them, so a CI run (no wallpapers
   present) would only ever exercise the empty state, not the gallery.
 
+## Added in 2.2.3
+
+- **"Set up TV remote" for already-paired KDE Connect devices** (Settings →
+  Remote connect) — follow-up to 2.2.2's TV remote feature, after a real
+  pairing (a Mac running the actual KDE Connect desktop app, on a confirmed
+  v2.2.2 install) showed no Run Commands at all. Root cause:
+  `pair()`/`accept()` only write the config at the exact moment pairing
+  happens, so anything paired before the feature existed, or through any
+  path other than TV Home's own Settings page, never got it — and there was
+  no way to fix that without unpairing and re-pairing. Added a
+  `POST /api/kdeconnect/install-remote` route and
+  `system/kdeconnect.py`'s `install_remote()`, surfaced as a "Set up TV
+  remote" row on every paired device, safe to run any number of times.
+  *Verified*: `backend/tests/test_routes.py`'s new test and a manual
+  Playwright pass (screenshots showing the row and the success toast).
+  *Unverified on the real PC*: needs the actual already-paired device (the
+  Mac from the real-hardware report) to confirm Run Commands actually
+  populates after using this.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

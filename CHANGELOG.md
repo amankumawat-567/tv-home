@@ -4,6 +4,27 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.2.3]
+
+Follow-up to 2.2.2's TV remote feature: a real pairing (done via a Mac
+running the actual KDE Connect desktop app, confirmed on v2.2.2) showed no
+Run Commands at all, confirming the suspected gap.
+
+### Added
+
+- **"Set up TV remote" for already-paired devices** (Settings → Remote
+  connect). `pair()`/`accept()` only write the Run Command config at the
+  exact moment pairing happens — a device paired before this feature
+  existed, or paired through any path other than TV Home's own Settings
+  page (e.g. accepted entirely from the other device's own KDE Connect
+  app), never got it written at all, and there was previously no way to fix
+  that short of unpairing and re-pairing. Every paired device now gets a
+  "Set up TV remote" row that pushes the config on demand
+  (`POST /api/kdeconnect/install-remote`,
+  `system/kdeconnect.py`'s `install_remote()`) — safe to run any number of
+  times. *Verified*: new backend test, and a manual Playwright pass showing
+  the row, the action succeeding, and the confirmation toast.
+
 ## [2.2.2]
 
 One fix and one feature, both found/requested right after trying KDE Connect

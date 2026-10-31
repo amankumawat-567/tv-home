@@ -206,3 +206,18 @@ async def unpair(device_id: str, name: str) -> tuple[bool, str]:
         return True, f"Unpaired {name}."
     except Exception:
         return False, f"Couldn't unpair {name}."
+
+
+async def install_remote(device_id: str, name: str) -> tuple[bool, str]:
+    """User-facing "Set up TV remote" action for a device that's *already*
+    paired — pair()/accept() above only write the Run Command config at the
+    moment pairing happens, so a device paired before this feature existed,
+    or paired through some path other than TV Home's own Settings > Remote
+    connect page (e.g. accepted entirely from the other device's own KDE
+    Connect app), never got it written at all. This lets it be pushed on
+    demand instead of requiring an unpair/re-pair dance to retrigger it."""
+    try:
+        await install_tv_remote(device_id)
+        return True, f"TV remote set up for {name} — check Run Commands in its KDE Connect app."
+    except Exception:
+        return False, f"Couldn't set up the TV remote for {name}."
