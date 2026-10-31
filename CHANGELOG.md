@@ -4,6 +4,28 @@ All notable changes to TV Home are documented here. Versions correspond to
 GitHub release tags; each release's tarball is built and attached
 automatically by `.github/workflows/release.yml`.
 
+## [2.2.0]
+
+Two new remote-connectivity features.
+
+### Added
+
+- **KDE Connect pairing (Settings → Remote connect)**: pair a phone running
+  the KDE Connect app as a remote control. TV Home only handles pairing —
+  once paired, KDE Connect's own daemon injects mouse/keyboard events from
+  the phone's "Remote input" plugin via XTest directly into the X session,
+  so there's no TV-Home-specific input-routing code. Works both ways: pair
+  with a reachable phone from the list, or accept/reject an incoming
+  request a phone already sent. `install.sh` installs the `kdeconnect`
+  package (best-effort — won't fail the rest of the install if unavailable).
+- **Bluetooth PIN/passkey pairing**: some devices (older peripherals needing
+  a fixed PIN, or numeric-comparison pairing) need something to answer
+  BlueZ's pairing-agent callbacks — without one registered, those pairings
+  just failed outright with no explanation. Registers a `KeyboardDisplay`
+  pairing agent the first time you connect to anything; a PIN device now
+  brings up the on-screen keyboard, a passkey-confirmation device shows a
+  yes/no dialog with the code to check against the device's own display.
+
 ## [2.1.3]
 
 Fixes "Go to desktop" dropping to a black screen instead of the real XFCE

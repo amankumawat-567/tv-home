@@ -37,6 +37,11 @@ class BtDeviceBody(BaseModel):
     name: str
 
 
+class BtPairingRespondBody(BaseModel):
+    value: Optional[str] = None  # typed PIN/passkey
+    accept: Optional[bool] = None  # confirm/authorize accept or reject
+
+
 class SoundActionBody(BaseModel):
     action: str  # up | down | mute | output
     id: Optional[str] = None
@@ -70,3 +75,8 @@ class SlideshowBody(BaseModel):
 class KeymapSetBody(BaseModel):
     action: str
     key: Optional[str] = None
+
+
+class KdeConnectDeviceBody(BaseModel):
+    id: str
+    name: str

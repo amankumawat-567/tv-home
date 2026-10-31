@@ -1,9 +1,11 @@
 import type {
   AppState,
+  BluetoothPairingRequest,
   BluetoothState,
   DateTimeState,
   DisplayState,
   AboutInfo,
+  KdeConnectState,
   ServerEvent,
   SlideshowSettings,
   SoundState,
@@ -52,6 +54,15 @@ export const api = {
   btConnect: (mac: string, name: string) => post<{ ok: boolean; message: string }>("/api/bluetooth/connect", { mac, name }),
   btDisconnect: (mac: string, name: string) => post<{ ok: boolean; message: string }>("/api/bluetooth/disconnect", { mac, name }),
   btForget: (mac: string, name: string) => post<{ ok: boolean; message: string }>("/api/bluetooth/forget", { mac, name }),
+  btPairingRequest: () => req<BluetoothPairingRequest | null>("/api/bluetooth/pairing"),
+  btPairingRespond: (value?: string | null, accept?: boolean | null) =>
+    post<{ ok: boolean }>("/api/bluetooth/pairing/respond", { value, accept }),
+
+  kdeconnect: (refresh = false) => req<KdeConnectState>(`/api/kdeconnect${refresh ? "?refresh=1" : ""}`),
+  kdeconnectPair: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/pair", { id, name }),
+  kdeconnectAccept: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/accept", { id, name }),
+  kdeconnectReject: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/reject", { id, name }),
+  kdeconnectUnpair: (id: string, name: string) => post<{ ok: boolean; message: string }>("/api/kdeconnect/unpair", { id, name }),
 
   sound: () => req<SoundState>("/api/sound"),
   soundAction: (action: "up" | "down" | "mute", ) => post<{ ok: boolean }>("/api/sound", { action }),

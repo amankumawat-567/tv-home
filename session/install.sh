@@ -213,6 +213,13 @@ run_doctor() {
   else
     echo "  NOT reachable"
   fi
+  echo
+  echo "KDE Connect (Settings > Remote connect — phone-as-remote pairing):"
+  if command -v kdeconnect-cli >/dev/null; then
+    echo "  installed"
+  else
+    echo "  NOT installed — apt install kdeconnect to enable it"
+  fi
 }
 
 if [ "${1:-}" = "--check" ]; then
@@ -224,6 +231,14 @@ log "Checking prerequisites"
 if command -v apt-get >/dev/null; then
   sudo apt-get update -qq
   sudo apt-get install -y -qq python3-venv python3-pip xbindkeys curl rsync >/dev/null
+  # Best-effort, separate from the install above: KDE Connect is optional
+  # (Settings > Remote connect lets a phone pair as a remote control -- its
+  # own daemon handles the actual input injection once paired, so installing
+  # it is the only step needed here). Kept in its own apt-get call so a
+  # missing/unavailable package here can't fail the install of everything
+  # else above.
+  sudo apt-get install -y -qq kdeconnect >/dev/null 2>&1 \
+    || log "kdeconnect package not available — Settings > Remote connect will show \"not installed\" until you add it by hand"
 else
   log "apt-get not found — make sure python3-venv, xbindkeys, curl and rsync are installed"
 fi

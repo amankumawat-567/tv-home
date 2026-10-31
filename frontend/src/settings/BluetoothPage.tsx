@@ -1,16 +1,69 @@
 import { Fragment } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { api } from "../api";
 import { pushToast } from "../state/data";
 import { askConfirm } from "../state/ui";
 import { usePolling } from "../utils/usePolling";
 import { SettingsRow } from "../components/SettingsRow";
-import type { BluetoothDevice } from "../types";
+import { OnScreenKeyboard } from "../components/OnScreenKeyboard";
+import type { BluetoothDevice, BluetoothPairingRequest } from "../types";
+
+const PAIRING_POLL_MS = 400;
 
 export function BluetoothPage() {
   const { data, refresh } = usePolling(() => api.bluetooth(), 5000);
   const [acting, setActing] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  // Some devices need BlueZ's pairing agent to ask for a PIN/passkey mid-way
+  // through connect() (which blocks for the whole handshake) — poll for that
+  // while a connect is in flight, since it's the only way to learn a prompt
+  // is needed before the HTTP call itself finally resolves.
+  const [pairing, setPairing] = useState<BluetoothPairingRequest | null>(null);
+  const shownRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!acting) {
+      setPairing(null);
+      shownRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      const req = await api.btPairingRequest().catch(() => null);
+      if (!cancelled) setPairing(req);
+    };
+    void poll();
+    const id = window.setInterval(poll, PAIRING_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [acting]);
+
+  const respondPairing = (value?: string, accept?: boolean) => {
+    void api.btPairingRespond(value, accept).catch(() => undefined);
+    setPairing(null);
+  };
+
+  // Fires once per new request (not on every poll tick) — askConfirm/toast
+  // are one-shot calls, not state-driven renders like the PIN keyboard below.
+  useEffect(() => {
+    if (!pairing) return;
+    const key = `${pairing.mac}-${pairing.kind}`;
+    if (shownRef.current === key) return;
+    shownRef.current = key;
+    if (pairing.kind === "confirm") {
+      askConfirm({
+        title: "Confirm pairing code",
+        message: `Does ${pairing.name} show ${pairing.passkey}?`,
+        confirmLabel: "Yes, it matches",
+        onConfirm: () => respondPairing(undefined, true),
+        onCancel: () => respondPairing(undefined, false),
+      });
+    } else if (pairing.kind === "display") {
+      pushToast(`Type ${pairing.passkey} on ${pairing.name}`, "info");
+    }
+  }, [pairing]);
 
   if (!data) return <p className="settings-empty">Loading…</p>;
   if (!data.available) {
@@ -70,7 +123,17 @@ export function BluetoothPage() {
           <Fragment key={d.mac}>
             <SettingsRow
               label={d.name || d.mac}
-              value={acting === d.mac ? "Working…" : d.connected ? "Connected" : d.paired ? "Paired" : "Available"}
+              value={
+                acting === d.mac
+                  ? pairing?.mac === d.mac
+                    ? "Pairing…"
+                    : "Working…"
+                  : d.connected
+                    ? "Connected"
+                    : d.paired
+                      ? "Paired"
+                      : "Available"
+              }
               onSelect={() => select(d)}
             />
             {d.paired && (
@@ -91,6 +154,15 @@ export function BluetoothPage() {
           </Fragment>
         ))}
       {data.powered && (data.devices ?? []).length === 0 && <p className="settings-empty">No devices found yet. Try scanning.</p>}
+
+      {pairing && (pairing.kind === "pin" || pairing.kind === "passkey") && (
+        <OnScreenKeyboard
+          label={`${pairing.kind === "pin" ? "PIN" : "Passkey"} for ${pairing.name}`}
+          submitLabel="Pair"
+          onSubmit={(value) => respondPairing(value)}
+          onCancel={() => respondPairing(undefined, false)}
+        />
+      )}
     </div>
   );
 }

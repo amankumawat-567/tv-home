@@ -23,14 +23,14 @@ export function ConfirmDialog() {
         <h2 className="dialog-title">{req.title}</h2>
         <p className="dialog-message">{req.message}</p>
         <div className="dialog-buttons">
-          <DialogButton label="Cancel" onSelect={closeConfirm} autoFocus={req.tone === "danger"} />
+          <DialogButton label="Cancel" onSelect={() => closeConfirm(false)} autoFocus={req.tone === "danger"} />
           <DialogButton
             label={req.confirmLabel}
             danger={req.tone === "danger"}
             autoFocus={req.tone !== "danger"}
             onSelect={() => {
               const run = req.onConfirm;
-              closeConfirm();
+              closeConfirm(true);
               run();
             }}
           />

@@ -248,6 +248,50 @@ drops to a black screen instead of the real XFCE desktop.
   before `exec`-ing `startxfce4`. *Unverified on the real PC* — needs an
   actual "Go to desktop" press to confirm.
 
+## Added in 2.2.0
+
+- **KDE Connect pairing (Settings → Remote connect)** —
+  `backend/tv_home/system/kdeconnect.py`, mirrored by `mock/kdeconnect.py`.
+  dbus-fast against the session bus's `org.kde.kdeconnect` service
+  (`/modules/kdeconnect` daemon object, `/modules/kdeconnect/devices/<id>`
+  per device) — the exact method/property names
+  (`devices()`/`deviceNames()`/`requestPairing()`/`acceptPairing()`/
+  `cancelPairing()`/`unpair()`, `isPaired`/`isReachable`/
+  `isPairRequestedByPeer`) were taken directly from kdeconnect-kde's own
+  source (`core/daemon.h`, `core/device.h`,
+  `dbusinterfaces/dbusinterfaces.cpp`), not guessed from CLI output or docs.
+  TV Home only handles pairing; once paired, KDE Connect's own daemon
+  injects input from the phone's "Remote input" plugin via XTest directly,
+  with no TV-Home-specific input code at all. `install.sh` installs the
+  `kdeconnect` package in its own best-effort `apt-get` call so a missing
+  package can't fail the rest of the install. *Verified*: the full UI flow
+  against the mock provider (box-initiated pairing and accepting/rejecting
+  an incoming request), `backend/tests/test_routes.py`'s kdeconnect tests,
+  and `frontend/tests/e2e/remote-connectivity.spec.ts`. *Unverified*: the
+  real D-Bus calls themselves — needs KDE Connect actually installed and a
+  real phone on the real PC (no session D-Bus bus or kdeconnectd on this
+  macOS sandbox).
+- **Bluetooth PIN/passkey pairing** — `system/bluetooth.py` gained a
+  `org.bluez.Agent1` implementation (`_PairingAgent`, capability
+  `KeyboardDisplay`) registered the first time `connect()` is called;
+  `RequestPinCode`/`RequestPasskey`/`RequestConfirmation`/
+  `RequestAuthorization` bridge to the UI via a one-pending-request-at-a-time
+  slot (`pairing_request()`/`respond_pairing_request()`,
+  `GET`/`POST /api/bluetooth/pairing`), the same side-channel-poll shape
+  `phone_type.py` already uses. `AuthorizeService` auto-approves (the device
+  is already trusted by then) rather than prompting per-service. Mirrored in
+  `mock/bluetooth.py` with two dedicated mock devices (a PIN-only one, a
+  passkey-confirmation one) so the full handshake — including a *wrong* PIN
+  correctly failing — is exercised without real hardware. The on-screen
+  keyboard handles PIN/passkey entry; a yes/no dialog (reusing
+  `ConfirmDialog`, which gained an `onCancel` hook for this) handles
+  passkey confirmation. *Verified* against the mock agent (correct and
+  incorrect PIN, accept and reject confirmation) via
+  `backend/tests/test_routes.py` and
+  `frontend/tests/e2e/remote-connectivity.spec.ts`. *Unverified*: the real
+  BlueZ agent registration and callbacks — needs a real Bluetooth adapter
+  and a PIN/passkey device on the real PC.
+
 ## Open product decisions (from the PRD, not yet re-decided)
 
 The PRD left these open; defaults were applied so implementation wasn't

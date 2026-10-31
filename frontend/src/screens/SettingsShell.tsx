@@ -10,6 +10,7 @@ import { WallpaperPage } from "../settings/WallpaperPage";
 import { AboutPage } from "../settings/AboutPage";
 import { PowerPanel } from "../settings/PowerPanel";
 import { RemotePage } from "../settings/RemotePage";
+import { KdeConnectPage } from "../settings/KdeConnectPage";
 
 const CATEGORIES: { id: Exclude<SettingsPage, null>; label: string }[] = [
   { id: "wifi", label: "Wi-Fi" },
@@ -19,6 +20,7 @@ const CATEGORIES: { id: Exclude<SettingsPage, null>; label: string }[] = [
   { id: "datetime", label: "Date and time" },
   { id: "wallpaper", label: "Wallpaper" },
   { id: "remote", label: "Remote" },
+  { id: "kdeconnect", label: "Remote connect" },
   { id: "about", label: "About" },
   { id: "power", label: "Power" },
 ];
@@ -54,6 +56,7 @@ export function SettingsShell() {
         {page === "datetime" && <DateTimePage />}
         {page === "wallpaper" && <WallpaperPage />}
         {page === "remote" && <RemotePage />}
+        {page === "kdeconnect" && <KdeConnectPage />}
         {page === "about" && <AboutPage />}
         {page === "power" && <PowerPanel />}
       </div>

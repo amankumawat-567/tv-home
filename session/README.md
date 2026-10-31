@@ -107,6 +107,34 @@ on the display meant `startxfce4`'s own window manager could never take
 over, leaving a black screen (just the `xsetroot` background, no panel, no
 desktop icons) instead of a real desktop.
 
+## Remote connect (KDE Connect)
+
+`install.sh` installs the `kdeconnect` package (best-effort — a missing
+package here doesn't fail the rest of the install, see the "kdeconnect
+package not available" log line if it happens). Settings → Remote connect
+lets you pair a phone running the KDE Connect app — pairing is all TV Home's
+own UI handles; once paired, KDE Connect's own daemon injects mouse/keyboard
+events from the phone's "Remote input" plugin via XTest straight into this
+X session, so there's no TV-Home-specific "remote control" code to speak of,
+just who's allowed to connect. Works in both directions: pick a reachable
+phone from the list to send it a pairing request, or accept/reject one a
+phone already sent. Talks to `kdeconnectd` over the **session** D-Bus bus
+(not the system bus BlueZ/logind use) — assumes the X session has a working
+one, same as every other X11 convenience already relies on; worth checking
+first if Settings → Remote connect shows "not installed or running" even
+with the package present.
+
+## Bluetooth pairing (PIN/passkey devices)
+
+Some devices (older peripherals needing a fixed PIN, or anything using
+numeric-comparison pairing) need something to answer BlueZ's pairing-agent
+callbacks — without one registered, those pairings just fail outright.
+`backend/tv_home/system/bluetooth.py` registers a `KeyboardDisplay`-capable
+agent the first time you connect to anything, so pairing now asks on-screen:
+a PIN device brings up the regular keyboard, a passkey-confirmation device
+shows a yes/no dialog with the code to check against what the device itself
+displays. No install step needed — this is pure backend logic.
+
 ## Checking status
 
 ```sh
@@ -117,8 +145,9 @@ Prints the installed path and version, whether the xsession files are in
 place, every `autologin-user`/`autologin-session` line found across
 `/etc/lightdm/lightdm.conf` and `lightdm.conf.d/*.conf` (in the order
 LightDM would apply them), whether the polkit rule is installed and for
-which user, the systemd `--user` service's status, and whether the backend
-answers on `http://127.0.0.1:8000`. Doesn't install or change anything.
+which user, the systemd `--user` service's status, whether the backend
+answers on `http://127.0.0.1:8000`, and whether `kdeconnect-cli` is
+installed. Doesn't install or change anything.
 
 ## Uninstall
 

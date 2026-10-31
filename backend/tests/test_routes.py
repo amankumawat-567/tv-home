@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -253,3 +255,92 @@ async def test_phone_typing_unknown_token_is_a_clean_404(client):
     assert (await client.post("/type/does-not-exist", json={"value": "x"})).status_code == 404
     assert (await client.post("/type/does-not-exist/done")).status_code == 404
     assert (await client.get("/type/does-not-exist")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_pin_pairing_round_trip(client):
+    # connect() blocks for the whole handshake, same as the real BlueZ agent
+    # would -- drive it concurrently with the side-channel pairing poll/respond,
+    # exactly how the frontend has to.
+    mac, name = "AA:BB:CC:00:11:55", "Old Bluetooth Keyboard"
+
+    async def wait_for_pending():
+        for _ in range(50):
+            pending = (await client.get("/api/bluetooth/pairing")).json()
+            if pending:
+                return pending
+            await asyncio.sleep(0.02)
+        raise AssertionError("pairing request never appeared")
+
+    # Wrong PIN -- pairing fails, device stays unpaired.
+    connect_task = asyncio.create_task(client.post("/api/bluetooth/connect", json={"mac": mac, "name": name}))
+    pending = await wait_for_pending()
+    assert pending == {"mac": mac, "name": name, "kind": "pin", "passkey": None}
+    await client.post("/api/bluetooth/pairing/respond", json={"value": "9999"})
+    result = (await connect_task).json()
+    assert result["ok"] is False
+
+    # Right PIN -- succeeds.
+    connect_task = asyncio.create_task(client.post("/api/bluetooth/connect", json={"mac": mac, "name": name}))
+    pending = await wait_for_pending()
+    assert pending["kind"] == "pin"
+    await client.post("/api/bluetooth/pairing/respond", json={"value": "0000"})
+    result = (await connect_task).json()
+    assert result["ok"] is True
+    assert name in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_passkey_confirmation_round_trip(client):
+    mac, name = "AA:BB:CC:00:11:66", "Car Stereo"
+
+    async def wait_for_pending():
+        for _ in range(50):
+            pending = (await client.get("/api/bluetooth/pairing")).json()
+            if pending:
+                return pending
+            await asyncio.sleep(0.02)
+        raise AssertionError("pairing request never appeared")
+
+    # Reject -- fails, stays unpaired.
+    connect_task = asyncio.create_task(client.post("/api/bluetooth/connect", json={"mac": mac, "name": name}))
+    pending = await wait_for_pending()
+    assert pending == {"mac": mac, "name": name, "kind": "confirm", "passkey": 583921}
+    await client.post("/api/bluetooth/pairing/respond", json={"accept": False})
+    assert (await connect_task).json()["ok"] is False
+
+    # Accept -- succeeds.
+    connect_task = asyncio.create_task(client.post("/api/bluetooth/connect", json={"mac": mac, "name": name}))
+    pending = await wait_for_pending()
+    assert pending["kind"] == "confirm"
+    await client.post("/api/bluetooth/pairing/respond", json={"accept": True})
+    result = (await connect_task).json()
+    assert result["ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_kdeconnect_state_shape(client):
+    res = await client.get("/api/kdeconnect")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["available"] is True
+    assert {"id", "name", "paired", "reachable", "incomingRequest"} <= set(body["devices"][0])
+
+
+@pytest.mark.asyncio
+async def test_kdeconnect_box_initiated_pairing(client):
+    res = await client.post("/api/kdeconnect/pair", json={"id": "dev-pixel", "name": "Aman's Pixel"})
+    body = res.json()
+    assert body["ok"] is True
+    devices = (await client.get("/api/kdeconnect")).json()["devices"]
+    assert next(d for d in devices if d["id"] == "dev-pixel")["paired"] is True
+
+
+@pytest.mark.asyncio
+async def test_kdeconnect_accept_and_reject_incoming_request(client):
+    res = await client.post("/api/kdeconnect/reject", json={"id": "dev-old-phone", "name": "Old Phone"})
+    assert res.json()["ok"] is True
+    devices = (await client.get("/api/kdeconnect")).json()["devices"]
+    old_phone = next(d for d in devices if d["id"] == "dev-old-phone")
+    assert old_phone["incomingRequest"] is False
+    assert old_phone["paired"] is False

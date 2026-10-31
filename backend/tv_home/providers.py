@@ -8,6 +8,7 @@ from . import config
 if config.MOCK:
     from .mock import bluetooth as bluetooth_provider
     from .mock import display as display_provider
+    from .mock import kdeconnect as kdeconnect_provider
     from .mock import power as power_provider
     from .mock import sound as sound_provider
     from .mock import update as update_provider
@@ -15,6 +16,7 @@ if config.MOCK:
 else:
     from .system import bluetooth as bluetooth_provider
     from .system import display as display_provider
+    from .system import kdeconnect as kdeconnect_provider
     from .system import power as power_provider
     from .system import sound as sound_provider
     from .system import update as update_provider
@@ -27,4 +29,5 @@ __all__ = [
     "display_provider",
     "power_provider",
     "update_provider",
+    "kdeconnect_provider",
 ]

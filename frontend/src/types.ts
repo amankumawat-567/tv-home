@@ -49,6 +49,31 @@ export interface BluetoothState {
   devices?: BluetoothDevice[];
 }
 
+// What BlueZ's pairing agent is currently waiting on, polled while a
+// connect() call is in flight (it blocks for the whole handshake) — "pin"
+// wants typed text, "confirm" wants a yes/no on whether `passkey` matches
+// what the device shows.
+export interface BluetoothPairingRequest {
+  mac: string;
+  name: string;
+  kind: "pin" | "passkey" | "confirm" | "authorize" | "display";
+  passkey: number | null;
+}
+
+export interface KdeConnectDevice {
+  id: string;
+  name: string;
+  paired: boolean;
+  reachable: boolean;
+  incomingRequest: boolean;
+}
+
+export interface KdeConnectState {
+  available: boolean;
+  error?: string;
+  devices?: KdeConnectDevice[];
+}
+
 export interface SoundOutput {
   id: string;
   name: string;
